@@ -12,6 +12,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://visa-hunt.com"),
   title: {
     default: "VisaHunt — Every Visa-Sponsored Tech Job. One Search.",
     template: "%s | VisaHunt",
@@ -29,6 +30,23 @@ export const metadata: Metadata = {
     "relocation jobs",
     "visa sponsor verification",
   ],
+  openGraph: {
+    type: "website",
+    siteName: "VisaHunt",
+    url: "https://visa-hunt.com",
+    title: "VisaHunt — Every Visa-Sponsored Tech Job. One Search.",
+    description:
+      "Find visa-sponsored tech jobs worldwide. Government-verified sponsors, salary comparisons in INR, and visa guides — built for Indian developers.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "VisaHunt — Every Visa-Sponsored Tech Job. One Search.",
+    description:
+      "Find visa-sponsored tech jobs worldwide. Government-verified sponsors, salary comparisons in INR, and visa guides.",
+  },
+  alternates: {
+    canonical: "https://visa-hunt.com",
+  },
 };
 
 export default function RootLayout({
