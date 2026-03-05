@@ -24,7 +24,7 @@ jobs:
     steps:
       - name: Trigger job ingestion
         run: |
-          response=$(curl -s -w "\n%{http_code}" -X POST \
+          response=$(curl -sL -w "\n%{http_code}" -X POST \
             "$BASE_URL/api/cron/ingest-jobs" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json")
@@ -47,7 +47,7 @@ jobs:
     steps:
       - name: Trigger sponsor ingestion
         run: |
-          response=$(curl -s -w "\n%{http_code}" -X POST \
+          response=$(curl -sL -w "\n%{http_code}" -X POST \
             "$BASE_URL/api/cron/ingest-sponsors" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json")
@@ -70,7 +70,7 @@ jobs:
     steps:
       - name: Trigger expired job cleanup
         run: |
-          response=$(curl -s -w "\n%{http_code}" -X POST \
+          response=$(curl -sL -w "\n%{http_code}" -X POST \
             "$BASE_URL/api/cron/cleanup-expired" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json")
@@ -93,7 +93,7 @@ jobs:
     steps:
       - name: Trigger exchange rate update
         run: |
-          response=$(curl -s -w "\n%{http_code}" -X POST \
+          response=$(curl -sL -w "\n%{http_code}" -X POST \
             "$BASE_URL/api/cron/update-exchange" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json")
