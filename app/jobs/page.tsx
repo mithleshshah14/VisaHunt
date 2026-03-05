@@ -28,8 +28,8 @@ export default function JobListingsPage() {
   // Fetch stats
   useEffect(() => {
     fetch("/api/jobs/stats")
-      .then((r) => r.json())
-      .then(setStats)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => d?.totalJobs != null && setStats(d))
       .catch(() => {});
   }, []);
 
@@ -136,7 +136,7 @@ export default function JobListingsPage() {
           </div>
 
           {/* Stats sidebar */}
-          {stats && (
+          {stats?.jobsByCountry && (
             <div className="mt-4 rounded-xl border border-navy-600/50 bg-navy-800 p-5">
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Jobs by Country

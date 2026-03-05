@@ -15,8 +15,8 @@ export default function LandingPage() {
 
   useEffect(() => {
     fetch("/api/jobs/stats")
-      .then((r) => r.json())
-      .then(setStats)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => d?.totalJobs != null && setStats(d))
       .catch(() => {});
 
     fetch("/api/jobs/trending")
