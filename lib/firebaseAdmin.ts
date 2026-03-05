@@ -37,9 +37,10 @@ function getAdminApp(): App {
     }
   }
 
-  _adminApp = initializeApp({
-    credential: cert(serviceAccount),
-  });
+  _adminApp = initializeApp(
+    { credential: cert(serviceAccount) },
+    "visahunt" // Separate app instance so it doesn't clash with HuntWise
+  );
 
   return _adminApp;
 }
@@ -48,7 +49,7 @@ function getAdminApp(): App {
 export const adminDb: Firestore = new Proxy({} as Firestore, {
   get(_, prop) {
     if (!_adminDb) {
-      _adminDb = getFirestore(getAdminApp());
+      _adminDb = getFirestore(getAdminApp(), "visahunt");
     }
     return (_adminDb as any)[prop];
   },
