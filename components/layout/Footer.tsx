@@ -25,8 +25,11 @@ export function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div>
-            <Link href="/" className="font-sora text-xl font-bold text-white">
-              Visa<span className="text-sky-400">Hunt</span>
+            <Link href="/" className="flex items-center gap-2">
+              <img src="/logo.svg" alt="VisaHunt" className="h-7 w-7" />
+              <span className="font-sora text-xl font-bold text-white">
+                Visa<span className="text-sky-400">Hunt</span>
+              </span>
             </Link>
             <p className="mt-3 text-sm text-slate-400">
               Every visa-sponsored tech job. One search. Built for Indian

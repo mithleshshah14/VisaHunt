@@ -13,6 +13,10 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://visa-hunt.com"),
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/logo.svg",
+  },
   title: {
     default: "VisaHunt — Every Visa-Sponsored Tech Job. One Search.",
     template: "%s | VisaHunt",

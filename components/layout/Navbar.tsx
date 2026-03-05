@@ -17,9 +17,7 @@ export function Navbar() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/20">
-            <span className="text-lg font-bold text-sky-400">V</span>
-          </div>
+          <img src="/logo.svg" alt="VisaHunt" className="h-8 w-8" />
           <span className="font-sora text-xl font-bold text-white">
             Visa<span className="text-sky-400">Hunt</span>
           </span>

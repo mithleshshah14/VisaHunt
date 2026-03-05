@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Globe -->
+  <circle cx="24" cy="24" r="20" stroke="#0ea5e9" stroke-width="2" fill="#0a0f1e"/>
+  <!-- Latitude lines -->
+  <ellipse cx="24" cy="24" rx="20" ry="8" stroke="#0ea5e9" stroke-width="1.2" opacity="0.4"/>
+  <ellipse cx="24" cy="24" rx="20" ry="14" stroke="#0ea5e9" stroke-width="1" opacity="0.25"/>
+  <!-- Longitude lines -->
+  <ellipse cx="24" cy="24" rx="8" ry="20" stroke="#0ea5e9" stroke-width="1.2" opacity="0.4"/>
+  <ellipse cx="24" cy="24" rx="14" ry="20" stroke="#0ea5e9" stroke-width="1" opacity="0.25"/>
+  <!-- Meridian -->
+  <line x1="4" y1="24" x2="44" y2="24" stroke="#0ea5e9" stroke-width="1" opacity="0.3"/>
+  <line x1="24" y1="4" x2="24" y2="44" stroke="#0ea5e9" stroke-width="1" opacity="0.3"/>
+  <!-- Location pin -->
+  <g transform="translate(20, 10)">
+    <path d="M8 0C4.686 0 2 2.686 2 6c0 5.25 6 11 6 11s6-5.75 6-11c0-3.314-2.686-6-6-6z" fill="#06b6d4" stroke="#0a0f1e" stroke-width="1"/>
+    <circle cx="8" cy="6" r="2.5" fill="#0a0f1e"/>
+  </g>
+  <!-- Plane silhouette -->
+  <g transform="translate(6, 28) rotate(-15)">
+    <path d="M0 4L6 2.5L12 0L14 2L10 4L14 6L16 5L18 6L14 8L6 6L0 4Z" fill="#f59e0b" opacity="0.9"/>
+  </g>
+  <!-- Outer glow ring -->
+  <circle cx="24" cy="24" r="22" stroke="#06b6d4" stroke-width="0.5" opacity="0.2"/>
+</svg>
