@@ -1,0 +1,110 @@
+name: Scheduled Cron Jobs
+
+on:
+  schedule:
+    # Ingest jobs — every 6 hours
+    - cron: '0 */6 * * *'
+    # Ingest sponsors — Sunday 2am UTC
+    - cron: '0 2 * * 0'
+    # Cleanup expired jobs — daily 3am UTC
+    - cron: '0 3 * * *'
+    # Update exchange rates — daily 1am UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+env:
+  BASE_URL: ${{ secrets.BASE_URL }}
+  CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+jobs:
+  ingest-jobs:
+    if: github.event.schedule == '0 */6 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger job ingestion
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "$BASE_URL/api/cron/ingest-jobs" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | head -n -1)
+
+          echo "Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "::error::Ingest jobs failed with status $http_code"
+            exit 1
+          fi
+
+  ingest-sponsors:
+    if: github.event.schedule == '0 2 * * 0' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger sponsor ingestion
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "$BASE_URL/api/cron/ingest-sponsors" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | head -n -1)
+
+          echo "Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "::error::Ingest sponsors failed with status $http_code"
+            exit 1
+          fi
+
+  cleanup-expired:
+    if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger expired job cleanup
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "$BASE_URL/api/cron/cleanup-expired" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | head -n -1)
+
+          echo "Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "::error::Cleanup failed with status $http_code"
+            exit 1
+          fi
+
+  update-exchange:
+    if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger exchange rate update
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "$BASE_URL/api/cron/update-exchange" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | head -n -1)
+
+          echo "Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "::error::Exchange rate update failed with status $http_code"
+            exit 1
+          fi

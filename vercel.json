@@ -1,8 +1,3 @@
 {
-  "crons": [
-    { "path": "/api/cron/ingest-jobs", "schedule": "0 */6 * * *" },
-    { "path": "/api/cron/ingest-sponsors", "schedule": "0 2 * * 0" },
-    { "path": "/api/cron/cleanup-expired", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/update-exchange", "schedule": "0 1 * * *" }
-  ]
+  "framework": "nextjs"
 }
