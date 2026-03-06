@@ -10,20 +10,28 @@ export async function GET(_req: NextRequest) {
     const cached = await getCached<GlobalStats>("jobs:stats:global");
     if (cached) return NextResponse.json(cached);
 
-    const doc = await adminDb.collection("stats").doc("global").get();
+    // Compute live stats from active jobs
+    const jobsSnap = await adminDb
+      .collection("jobs")
+      .where("isActive", "==", true)
+      .select("country")
+      .limit(10000)
+      .get();
 
-    if (!doc.exists) {
-      const fallback: GlobalStats = {
-        totalJobs: 0,
-        totalSponsors: 0,
-        countriesCount: 0,
-        lastUpdated: new Date().toISOString(),
-        jobsByCountry: {},
-      };
-      return NextResponse.json(fallback);
-    }
+    const jobsByCountry: Record<string, number> = {};
+    jobsSnap.docs.forEach((doc) => {
+      const country = doc.data().country;
+      if (country) jobsByCountry[country] = (jobsByCountry[country] || 0) + 1;
+    });
 
-    const stats = doc.data() as GlobalStats;
+    const stats: GlobalStats = {
+      totalJobs: jobsSnap.size,
+      totalSponsors: 0,
+      countriesCount: Object.keys(jobsByCountry).length,
+      lastUpdated: new Date().toISOString(),
+      jobsByCountry,
+    };
+
     await setCache("jobs:stats:global", stats, 900); // 15 min
 
     return NextResponse.json(stats);
