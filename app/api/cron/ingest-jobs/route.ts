@@ -103,19 +103,29 @@ export async function POST(req: NextRequest) {
       errors.push(`Salary conversion: ${e}`);
     }
 
-    // Batch write to Firestore (499 per batch, parallel commits)
-    const batches = chunk(deduped, 499);
-    const batchPromises = batches.map((batch) => {
-      const writeBatch = adminDb.batch();
-      for (const job of batch) {
-        const docRef = adminDb.collection("jobs").doc(job.id);
-        // Strip undefined values — Firestore rejects them
-        const clean = JSON.parse(JSON.stringify(job));
-        writeBatch.set(docRef, clean, { merge: true });
+    // Truncate descriptions to save Firestore storage + avoid large docs
+    for (const job of deduped) {
+      if (job.description.length > 2000) {
+        job.description = job.description.slice(0, 2000);
       }
-      return writeBatch.commit();
-    });
-    await Promise.all(batchPromises);
+    }
+
+    // Batch write to Firestore (250 per batch, 3 concurrent to avoid DEADLINE_EXCEEDED)
+    const batches = chunk(deduped, 250);
+    const CONCURRENT_BATCHES = 3;
+    for (let i = 0; i < batches.length; i += CONCURRENT_BATCHES) {
+      const group = batches.slice(i, i + CONCURRENT_BATCHES);
+      const promises = group.map((batch) => {
+        const writeBatch = adminDb.batch();
+        for (const job of batch) {
+          const docRef = adminDb.collection("jobs").doc(job.id);
+          const clean = JSON.parse(JSON.stringify(job));
+          writeBatch.set(docRef, clean, { merge: true });
+        }
+        return writeBatch.commit();
+      });
+      await Promise.all(promises);
+    }
 
     // Update global stats (best-effort)
     try {
