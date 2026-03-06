@@ -8,6 +8,7 @@ import {
   getCountryName,
   calculateExpiryDate,
 } from "@/lib/normalizer";
+
 import type { NormalizedJob, JobSource } from "@/lib/types";
 
 const SOURCE: JobSource = "greenhouse";
@@ -56,6 +57,7 @@ interface GreenhouseJob {
   title: string;
   updated_at: string;
   absolute_url: string;
+  content?: string; // HTML job description (when ?content=true)
   location: {
     name: string;
   };
@@ -73,29 +75,18 @@ export async function fetchGreenhouseJobs(): Promise<NormalizedJob[]> {
   const allJobs: NormalizedJob[] = [];
   const slugs = Object.keys(GREENHOUSE_COMPANIES);
 
-  // Fetch in batches of 5 to avoid overwhelming the API
-  for (let i = 0; i < slugs.length; i += 5) {
-    const batch = slugs.slice(i, i + 5);
-    const results = await Promise.allSettled(
-      batch.map((slug) => fetchCompanyJobs(slug))
-    );
+  // Fetch ALL companies in parallel — Greenhouse API is fast and rate-limit-friendly
+  const results = await Promise.allSettled(
+    slugs.map((slug) => fetchCompanyJobs(slug))
+  );
 
-    for (let k = 0; k < results.length; k++) {
-      if (results[k].status === "fulfilled") {
-        allJobs.push(...(results[k] as PromiseFulfilledResult<NormalizedJob[]>).value);
-      } else {
-        console.error(
-          `[Greenhouse] ${batch[k]} failed:`,
-          (results[k] as PromiseRejectedResult).reason
-        );
-      }
+  results.forEach((result, i) => {
+    if (result.status === "fulfilled") {
+      allJobs.push(...result.value);
+    } else {
+      console.error(`[Greenhouse] ${slugs[i]} failed:`, result.reason);
     }
-
-    // Small delay between batches
-    if (i + 5 < slugs.length) {
-      await new Promise((r) => setTimeout(r, 500));
-    }
-  }
+  });
 
   console.log(
     `[Greenhouse] Fetched ${allJobs.length} jobs from ${slugs.length} companies`
@@ -106,7 +97,7 @@ export async function fetchGreenhouseJobs(): Promise<NormalizedJob[]> {
 async function fetchCompanyJobs(slug: string): Promise<NormalizedJob[]> {
   const companyName = GREENHOUSE_COMPANIES[slug] || slug;
 
-  const res = await fetch(`${API_BASE}/${slug}/jobs`, {
+  const res = await fetch(`${API_BASE}/${slug}/jobs?content=true`, {
     headers: { Accept: "application/json" },
   });
 
@@ -126,6 +117,10 @@ async function fetchCompanyJobs(slug: string): Promise<NormalizedJob[]> {
   }
 
   return jobs;
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function normalizeGreenhouseJob(
@@ -149,7 +144,9 @@ function normalizeGreenhouseJob(
   const country = resolveCountryFromLocation(locationName);
   if (!country) return null;
 
-  const techStack = extractTechStack(job.title);
+  const plainContent = job.content ? stripHtml(job.content) : "";
+  const techStack = extractTechStack(job.title + " " + plainContent);
+  const description = plainContent || `${job.title} at ${companyName} in ${locationName}`;
   const now = new Date().toISOString();
 
   return {
@@ -160,8 +157,8 @@ function normalizeGreenhouseJob(
     location: locationName,
     country,
     countryName: getCountryName(country),
-    description: `${job.title} at ${companyName} in ${locationName}. Apply on the company website for full details.`,
-    descriptionSnippet: `${job.title} at ${companyName} — ${locationName}`,
+    description,
+    descriptionSnippet: createSnippet(description),
     url: job.absolute_url,
     source: SOURCE,
     sources: [SOURCE],
