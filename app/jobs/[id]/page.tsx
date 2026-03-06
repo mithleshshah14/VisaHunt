@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { JobCard } from "@/components/jobs/JobCard";
+import { SaveJobButton } from "@/components/jobs/SaveJobButton";
 import type { NormalizedJob } from "@/lib/types";
 import { formatSalary, formatINR, timeAgo } from "@/lib/utils";
 import { COUNTRY_MAP } from "@/lib/types";
@@ -134,7 +135,7 @@ export default function JobDetailPage() {
             )}
 
             {/* Tech stack */}
-            {job.techStack.length > 0 && (
+            {job.techStack?.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {job.techStack.map((tech) => (
                   <span
@@ -148,7 +149,7 @@ export default function JobDetailPage() {
             )}
 
             {/* Apply button */}
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex items-center gap-3">
               <a
                 href={job.url}
                 target="_blank"
@@ -160,6 +161,7 @@ export default function JobDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
+              <SaveJobButton jobId={job.id} />
             </div>
           </div>
 

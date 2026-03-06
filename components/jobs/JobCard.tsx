@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { NormalizedJob } from "@/lib/types";
 import { formatSalary, formatINR, timeAgo } from "@/lib/utils";
 import { COUNTRY_MAP } from "@/lib/types";
+import { SaveJobButton } from "@/components/jobs/SaveJobButton";
 
 interface JobCardProps {
   job: NormalizedJob;
@@ -13,7 +14,10 @@ export function JobCard({ job }: JobCardProps) {
   const country = COUNTRY_MAP[job.country];
 
   return (
-    <div className="group rounded-xl border border-navy-600/50 bg-navy-800 p-5 transition hover:border-sky-500/30 hover:bg-navy-700">
+    <div className="group relative rounded-xl border border-navy-600/50 bg-navy-800 p-5 transition hover:border-sky-500/30 hover:bg-navy-700">
+      <div className="absolute right-3 top-3 z-10">
+        <SaveJobButton jobId={job.id} size="sm" />
+      </div>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {/* Verified badge + title */}

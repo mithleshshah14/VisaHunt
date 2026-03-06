@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { SavedJobsProvider } from "@/components/providers/SavedJobsProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const sora = Sora({ subsets: ["latin"], variable: "--font-sora" });
@@ -65,9 +66,11 @@ export default function RootLayout({
         className={`${inter.variable} ${sora.variable} ${spaceGrotesk.variable} font-sans antialiased`}
       >
         <AuthProvider>
-          <Navbar />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
+          <SavedJobsProvider>
+            <Navbar />
+            <main className="min-h-screen">{children}</main>
+            <Footer />
+          </SavedJobsProvider>
         </AuthProvider>
       </body>
     </html>
