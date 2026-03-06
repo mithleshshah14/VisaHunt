@@ -103,8 +103,8 @@ function normalizeArbeitnowJob(job: ArbeitnowJob): NormalizedJob | null {
       location: job.location,
     }),
     isActive: true,
-    remote: job.remote ? "remote" : undefined,
-    jobType: job.job_types?.includes("Full Time") ? "full-time" : undefined,
+    ...(job.remote ? { remote: "remote" as const } : {}),
+    ...(job.job_types?.includes("Full Time") ? { jobType: "full-time" as const } : {}),
   };
 
   return normalized;

@@ -99,7 +99,9 @@ export async function POST(req: NextRequest) {
       const writeBatch = adminDb.batch();
       for (const job of batch) {
         const docRef = adminDb.collection("jobs").doc(job.id);
-        writeBatch.set(docRef, job, { merge: true });
+        // Strip undefined values — Firestore rejects them
+        const clean = JSON.parse(JSON.stringify(job));
+        writeBatch.set(docRef, clean, { merge: true });
       }
       await writeBatch.commit();
     }
