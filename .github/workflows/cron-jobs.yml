@@ -2,8 +2,8 @@ name: Scheduled Cron Jobs
 
 on:
   schedule:
-    # Ingest jobs — every 6 hours
-    - cron: '0 */6 * * *'
+    # Ingest jobs — every 12 hours
+    - cron: '0 */12 * * *'
     # Ingest sponsors — Sunday 2am UTC
     - cron: '0 2 * * 0'
     # Cleanup expired jobs — daily 3am UTC
@@ -18,7 +18,7 @@ env:
 
 jobs:
   ingest-jobs:
-    if: github.event.schedule == '0 */6 * * *' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '0 */12 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
