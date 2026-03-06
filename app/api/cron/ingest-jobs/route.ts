@@ -4,6 +4,8 @@ import { invalidateCache } from "@/lib/redis";
 import {
   fetchArbeitnowJobs,
   fetchHimalayasJobs,
+  fetchGreenhouseJobs,
+  fetchLandingJobs,
   fetchGitHubAwesomeJobs,
   fetchVisaSponsorJobs,
 } from "@/lib/sources";
@@ -28,38 +30,25 @@ export async function POST(req: NextRequest) {
 
   try {
     // Fetch from all sources in parallel
-    const [arbeitnowJobs, himalayasJobs, githubJobs, visaSponsorJobs] = await Promise.allSettled([
+    const results = await Promise.allSettled([
       fetchArbeitnowJobs(),
-      fetchHimalayasJobs(25), // ~500 jobs (25 pages × 20)
-      fetchGitHubAwesomeJobs(),
-      fetchVisaSponsorJobs(),
+      fetchHimalayasJobs(25),    // ~500 jobs (25 pages × 20)
+      fetchGreenhouseJobs(),      // ~3,000-5,000 jobs from 30+ companies
+      fetchLandingJobs(),         // ~50 European visa jobs
+      fetchGitHubAwesomeJobs(),   // Dead source, kept for compat
+      fetchVisaSponsorJobs(),     // Dead source, kept for compat
     ]);
 
+    const sourceNames = ["Arbeitnow", "Himalayas", "Greenhouse", "LandingJobs", "GitHub", "VisaSponsor"];
     const allJobs: NormalizedJob[] = [];
 
-    if (arbeitnowJobs.status === "fulfilled") {
-      allJobs.push(...arbeitnowJobs.value);
-    } else {
-      errors.push(`Arbeitnow: ${arbeitnowJobs.reason}`);
-    }
-
-    if (himalayasJobs.status === "fulfilled") {
-      allJobs.push(...himalayasJobs.value);
-    } else {
-      errors.push(`Himalayas: ${himalayasJobs.reason}`);
-    }
-
-    if (githubJobs.status === "fulfilled") {
-      allJobs.push(...githubJobs.value);
-    } else {
-      errors.push(`GitHub: ${githubJobs.reason}`);
-    }
-
-    if (visaSponsorJobs.status === "fulfilled") {
-      allJobs.push(...visaSponsorJobs.value);
-    } else {
-      errors.push(`VisaSponsor: ${visaSponsorJobs.reason}`);
-    }
+    results.forEach((result, i) => {
+      if (result.status === "fulfilled") {
+        allJobs.push(...result.value);
+      } else {
+        errors.push(`${sourceNames[i]}: ${result.reason}`);
+      }
+    });
 
     // If no jobs fetched at all, return success with 0
     if (allJobs.length === 0) {

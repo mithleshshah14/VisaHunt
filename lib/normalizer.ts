@@ -255,6 +255,32 @@ const CITY_TO_COUNTRY: Record<string, string> = {
   prague: "CZ", brno: "CZ",
   // Japan
   tokyo: "JP", osaka: "JP",
+  // India
+  bangalore: "IN", bengaluru: "IN", mumbai: "IN", delhi: "IN",
+  "new delhi": "IN", hyderabad: "IN", pune: "IN", chennai: "IN",
+  gurgaon: "IN", gurugram: "IN", noida: "IN",
+  // Brazil
+  "sao paulo": "BR", "são paulo": "BR", "rio de janeiro": "BR",
+  // Mexico
+  "mexico city": "MX",
+  // Malaysia
+  "kuala lumpur": "MY",
+  // Thailand
+  bangkok: "TH",
+  // Romania
+  bucharest: "RO", cluj: "RO",
+  // Hungary
+  budapest: "HU",
+  // Israel
+  "tel aviv": "IL",
+  // South Korea
+  seoul: "KR",
+  // UAE
+  dubai: "AE", "abu dhabi": "AE",
+  // Greenhouse-specific abbreviations
+  nyc: "US", "new york city": "US", sf: "US", sea: "US",
+  "south san francisco": "US", "san fransisco": "US",
+  hawaii: "US",
 };
 
 export function resolveCountryCode(input: string): string {
@@ -262,22 +288,37 @@ export function resolveCountryCode(input: string): string {
   const trimmed = input.trim();
   const upper = trimmed.toUpperCase();
   if (upper.length === 2) return upper;
+
+  // Handle prefixed patterns like "US-Remote", "IE-Dublin", "IN-Bengaluru", "CA-Toronto"
+  const prefixMatch = trimmed.match(/^([A-Z]{2})[-\s]/i);
+  if (prefixMatch) {
+    const prefix = prefixMatch[1].toUpperCase();
+    if (prefix.length === 2) return prefix;
+  }
+
   const lower = trimmed.toLowerCase();
   return COUNTRY_ALIASES[lower] || CITY_TO_COUNTRY[lower] || "";
 }
 
 /**
  * Resolve country from a full location string like "Berlin, Germany" or just "Cologne".
- * Tries the last comma-separated part first, then the first part, then the whole string.
+ * Handles complex patterns: "Dublin / London", "Berlin/Munich", "SF, NYC, Remote".
+ * Tries comma parts, semicolon parts, slash parts, then the whole string.
  */
 export function resolveCountryFromLocation(location: string): string {
   if (!location) return "";
-  const parts = location.split(",").map((p) => p.trim());
 
-  // Try last part first (most likely the country)
+  // Split on comma, semicolon, or "or"/"OR"
+  const parts = location.split(/[,;]|\bor\b/i).map((p) => p.trim()).filter(Boolean);
+
+  // Try each part (last first — most likely the country)
   for (let i = parts.length - 1; i >= 0; i--) {
-    const code = resolveCountryCode(parts[i]);
-    if (code) return code;
+    // Also try splitting on "/" within each part (e.g. "Dublin / London")
+    const subParts = parts[i].split("/").map((p) => p.trim());
+    for (const sub of subParts) {
+      const code = resolveCountryCode(sub);
+      if (code) return code;
+    }
   }
 
   // Try the whole string
