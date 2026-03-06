@@ -124,21 +124,22 @@ function stripHtml(html: string): string {
 }
 
 // Phrases that indicate the job does NOT sponsor visas
+// Must be visa-specific — avoid matching "export license sponsorship" or "event sponsorship"
 const NO_VISA_PATTERNS = [
-  /\bnot\b.{0,20}\bsponso/i,
-  /\bno\b.{0,10}\bvisa\s*sponso/i,
-  /\bunable\s+to\s+sponsor/i,
-  /\bwill\s+not\s+sponsor/i,
-  /\bdoes\s+not\s+sponsor/i,
-  /\bdo\s+not\s+sponsor/i,
-  /\bwon'?t\s+sponsor/i,
-  /\bcannot\s+sponsor/i,
-  /\bcan'?t\s+sponsor/i,
-  /\bwithout\s+.{0,20}sponsor/i,
+  /visa\s+sponsorship\s+is\s+not\s+(offered|available|provided)/i,
+  /not\s+(be\s+)?eligible\s+for.{0,40}(visa|immigration)\s+sponsorship/i,
+  /not\s+available.{0,50}(visa|immigration)\s+sponsorship/i,
+  /will\s+not\s+(provide|offer|sponsor).{0,20}visa/i,
+  /does\s+not\s+(provide|offer|sponsor).{0,20}visa/i,
+  /unable\s+to\s+(provide|offer|sponsor).{0,20}visa/i,
+  /cannot\s+(provide|offer|sponsor).{0,20}visa/i,
+  /can'?t\s+(provide|offer|sponsor).{0,20}visa/i,
+  /won'?t\s+(provide|offer|sponsor).{0,20}visa/i,
+  /no\s+(visa|immigration)\s+(sponsorship|assistance)/i,
   /\bmust\s+be\s+(legally\s+)?authorized\s+to\s+work/i,
   /\bmust\s+have\s+(existing\s+)?(work|employment)\s+(authorization|permit)/i,
   /\brequires?\s+(existing\s+)?(work|employment)\s+(authorization|permit)/i,
-  /\bno\s+(immigration|relocation)\s+(sponsorship|assistance)/i,
+  /position\s+is\s+not\s+(eligible|available).{0,40}sponsorship/i,
 ];
 
 function hasNoVisaSignal(text: string): boolean {

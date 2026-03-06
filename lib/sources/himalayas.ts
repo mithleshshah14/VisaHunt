@@ -40,7 +40,7 @@ interface HimalayasResponse {
   jobs: HimalayasJob[];
 }
 
-export async function fetchHimalayasJobs(maxPages = 25): Promise<NormalizedJob[]> {
+export async function fetchHimalayasJobs(maxPages = 10): Promise<NormalizedJob[]> {
   const jobs: NormalizedJob[] = [];
   let offset = 0;
 
@@ -66,9 +66,6 @@ export async function fetchHimalayasJobs(maxPages = 25): Promise<NormalizedJob[]
 
       offset += data.jobs.length;
       if (offset >= data.totalCount) break;
-
-      // Small delay to be respectful
-      await new Promise((r) => setTimeout(r, 200));
     } catch (err) {
       console.error(`[Himalayas] Error at offset ${offset}:`, err);
       break;

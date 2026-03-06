@@ -61,25 +61,28 @@ export async function POST(req: NextRequest) {
     // Deduplicate
     const deduped = deduplicateJobs(allJobs);
 
-    // Verify sponsors — deduplicate by company+country, then batch
+    // Verify sponsors — only for jobs not already verified by their source
     try {
+      const unverifiedJobs = deduped.filter((j) => !j.verifiedSponsor);
       const uniqueCompanies = new Map<string, { company: string; country: string }>();
-      for (const job of deduped) {
+      for (const job of unverifiedJobs) {
         const key = `${normalizeCompanyName(job.company)}|${job.country}`;
         if (!uniqueCompanies.has(key)) {
           uniqueCompanies.set(key, { company: job.company, country: job.country });
         }
       }
 
-      const sponsorResults = await batchVerifySponsors([...uniqueCompanies.values()]);
+      if (uniqueCompanies.size > 0) {
+        const sponsorResults = await batchVerifySponsors([...uniqueCompanies.values()]);
 
-      for (const job of deduped) {
-        const key = `${normalizeCompanyName(job.company)}|${job.country}`;
-        const result = sponsorResults.get(key);
-        if (result) {
-          job.verifiedSponsor = result.verified;
-          job.sponsorTier = result.tier;
-          if (result.details) job.sponsorDetails = result.details;
+        for (const job of unverifiedJobs) {
+          const key = `${normalizeCompanyName(job.company)}|${job.country}`;
+          const result = sponsorResults.get(key);
+          if (result && result.verified) {
+            job.verifiedSponsor = true;
+            job.sponsorTier = result.tier;
+            if (result.details) job.sponsorDetails = result.details;
+          }
         }
       }
     } catch (e) {
