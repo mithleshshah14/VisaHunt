@@ -6,14 +6,16 @@ import { JobCard } from "@/components/jobs/JobCard";
 import { SUPPORTED_COUNTRIES } from "@/lib/types";
 import type { NormalizedJob } from "@/lib/types";
 
-type Tab = "saved" | "alerts" | "profile";
+type Tab = "saved" | "applied" | "alerts" | "profile";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
 
   const [activeTab, setActiveTab] = useState<Tab>("saved");
   const [savedJobs, setSavedJobs] = useState<NormalizedJob[]>([]);
+  const [appliedJobs, setAppliedJobs] = useState<NormalizedJob[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
+  const [loadingApplied, setLoadingApplied] = useState(false);
 
   // Alert form state
   const [alertCountries, setAlertCountries] = useState<string[]>([]);
@@ -30,6 +32,14 @@ export default function DashboardPage() {
         .then((data) => setSavedJobs(data.jobs || []))
         .catch(() => {})
         .finally(() => setLoadingJobs(false));
+    }
+    if (status === "authenticated" && activeTab === "applied") {
+      setLoadingApplied(true);
+      fetch("/api/jobs/applied")
+        .then((r) => r.json())
+        .then((data) => setAppliedJobs(data.jobs || []))
+        .catch(() => {})
+        .finally(() => setLoadingApplied(false));
     }
   }, [status, activeTab]);
 
@@ -96,6 +106,7 @@ export default function DashboardPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "saved", label: "Saved Jobs" },
+    { key: "applied", label: "Applied Jobs" },
     { key: "alerts", label: "Job Alerts" },
     { key: "profile", label: "Profile" },
   ];
@@ -182,6 +193,58 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-4">
                 {savedJobs.map((job) => (
+                  <JobCard key={job.id} job={job} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== Applied Jobs ===== */}
+        {activeTab === "applied" && (
+          <div>
+            <p className="mb-4 text-sm text-slate-400">
+              <span className="font-spaceGrotesk font-semibold text-slate-300">
+                {appliedJobs.length}
+              </span>{" "}
+              applied job{appliedJobs.length !== 1 ? "s" : ""}
+            </p>
+
+            {loadingApplied ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-500 border-t-transparent" />
+              </div>
+            ) : appliedJobs.length === 0 ? (
+              <div className="rounded-xl border border-navy-600/50 bg-navy-800 p-12 text-center">
+                <svg
+                  className="mx-auto h-12 w-12 text-slate-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="mt-4 text-lg font-medium text-slate-300">
+                  No applied jobs yet
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Mark jobs as applied to track your applications.
+                </p>
+                <a
+                  href="/jobs"
+                  className="mt-4 inline-block rounded-lg bg-sky-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-sky-400"
+                >
+                  Browse Jobs
+                </a>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {appliedJobs.map((job) => (
                   <JobCard key={job.id} job={job} />
                 ))}
               </div>

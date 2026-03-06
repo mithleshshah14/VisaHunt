@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { SavedJobsProvider } from "@/components/providers/SavedJobsProvider";
+import { AppliedJobsProvider } from "@/components/providers/AppliedJobsProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const sora = Sora({ subsets: ["latin"], variable: "--font-sora" });
@@ -67,9 +68,11 @@ export default function RootLayout({
       >
         <AuthProvider>
           <SavedJobsProvider>
-            <Navbar />
-            <main className="min-h-screen">{children}</main>
-            <Footer />
+            <AppliedJobsProvider>
+              <Navbar />
+              <main className="min-h-screen">{children}</main>
+              <Footer />
+            </AppliedJobsProvider>
           </SavedJobsProvider>
         </AuthProvider>
       </body>
