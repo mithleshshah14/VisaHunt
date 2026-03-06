@@ -17,6 +17,14 @@ const REMOTE_OPTIONS: { value: RemoteType; label: string }[] = [
   { value: "onsite", label: "On-site" },
 ];
 
+const POSTED_WITHIN_OPTIONS: { value: number | undefined; label: string }[] = [
+  { value: undefined, label: "3 weeks" },
+  { value: 7, label: "Past week" },
+  { value: 14, label: "2 weeks" },
+  { value: 30, label: "Past month" },
+  { value: 90, label: "Any time" },
+];
+
 const POPULAR_TECH = [
   "React", "TypeScript", "Python", "Node.js", "Java", "Go",
   "AWS", "Docker", "Kubernetes", "PostgreSQL", "GraphQL", "Rust",
@@ -29,7 +37,7 @@ interface JobFiltersProps {
 
 export function JobFilters({ filters, onFilterChange }: JobFiltersProps) {
   const [expanded, setExpanded] = useState(
-    !!(filters.experienceLevel || filters.remote)
+    !!(filters.experienceLevel || filters.remote || filters.postedWithin)
   );
 
   const updateFilter = (key: keyof SearchFilters, value: any) => {
@@ -176,6 +184,29 @@ export function JobFilters({ filters, onFilterChange }: JobFiltersProps) {
                   onClick={() => updateFilter("remote", opt.value)}
                   className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
                     filters.remote === opt.value
+                      ? "bg-sky-500 text-white"
+                      : "bg-navy-700 text-slate-300 hover:bg-navy-600"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Posted within */}
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Posted Within
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {POSTED_WITHIN_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value ?? "default"}
+                  onClick={() => updateFilter("postedWithin", opt.value)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                    filters.postedWithin === opt.value ||
+                    (opt.value === undefined && !filters.postedWithin)
                       ? "bg-sky-500 text-white"
                       : "bg-navy-700 text-slate-300 hover:bg-navy-600"
                   }`}

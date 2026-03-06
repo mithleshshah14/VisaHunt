@@ -40,6 +40,7 @@ function JobListingsContent() {
       techStack: techStack ? techStack.split(",") : undefined,
       experienceLevel: (searchParams.get("experienceLevel") as SearchFilters["experienceLevel"]) || undefined,
       remote: (searchParams.get("remote") as SearchFilters["remote"]) || undefined,
+      postedWithin: searchParams.get("postedWithin") ? Number(searchParams.get("postedWithin")) : undefined,
     };
   });
 
@@ -120,6 +121,7 @@ function JobListingsContent() {
     if (newFilters.techStack?.length) params.set("techStack", newFilters.techStack.join(","));
     if (newFilters.experienceLevel) params.set("experienceLevel", newFilters.experienceLevel);
     if (newFilters.remote) params.set("remote", newFilters.remote);
+    if (newFilters.postedWithin) params.set("postedWithin", String(newFilters.postedWithin));
     router.replace(`/jobs?${params.toString()}`, { scroll: false });
   };
 

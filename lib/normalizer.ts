@@ -340,10 +340,10 @@ export function getCountryName(code: string): string {
 }
 
 /**
- * Calculate expiry date (30 days from now).
+ * Calculate expiry date (21 days from now).
  */
 export function calculateExpiryDate(): string {
   const d = new Date();
-  d.setDate(d.getDate() + 30);
+  d.setDate(d.getDate() + 21);
   return d.toISOString();
 }
