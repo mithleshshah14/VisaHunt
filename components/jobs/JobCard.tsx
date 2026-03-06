@@ -73,7 +73,7 @@ export function JobCard({ job }: JobCardProps) {
           )}
 
           {/* Tech stack chips */}
-          {job.techStack.length > 0 && (
+          {job.techStack?.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {job.techStack.slice(0, 6).map((tech) => (
                 <span
@@ -83,7 +83,7 @@ export function JobCard({ job }: JobCardProps) {
                   {tech}
                 </span>
               ))}
-              {job.techStack.length > 6 && (
+              {job.techStack!.length > 6 && (
                 <span className="text-xs text-slate-500">
                   +{job.techStack.length - 6}
                 </span>

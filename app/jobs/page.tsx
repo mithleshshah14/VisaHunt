@@ -60,12 +60,14 @@ function JobListingsContent() {
         if (append && cursor) params.set("cursor", cursor);
 
         const res = await fetch(`/api/jobs/search?${params.toString()}`);
+        if (!res.ok) throw new Error("Search failed");
         const data: SearchResponse = await res.json();
+        const jobs = data.jobs || [];
 
-        setJobs((prev) => (append ? [...prev, ...data.jobs] : data.jobs));
-        setHasMore(data.hasMore);
+        setJobs((prev) => (append ? [...prev, ...jobs] : jobs));
+        setHasMore(data.hasMore ?? false);
         setCursor(data.cursor);
-        setTotalCount(data.totalCount);
+        setTotalCount(data.totalCount ?? 0);
       } catch {
         // Silent fail
       } finally {

@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
     if (filters.techStack && filters.techStack.length > 1) {
       const extraTechs = filters.techStack.slice(1).map((t) => t.toLowerCase());
       filtered = filtered.filter((j) =>
-        extraTechs.every((t) => j.techStackLower.includes(t))
+        extraTechs.every((t) => (j.techStackLower || []).includes(t))
       );
     }
 
