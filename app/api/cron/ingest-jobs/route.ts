@@ -113,21 +113,36 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Batch write to Firestore (250 per batch, 3 concurrent to avoid DEADLINE_EXCEEDED)
-    const batches = chunk(deduped, 250);
-    const CONCURRENT_BATCHES = 3;
-    for (let i = 0; i < batches.length; i += CONCURRENT_BATCHES) {
-      const group = batches.slice(i, i + CONCURRENT_BATCHES);
-      const promises = group.map((batch) => {
-        const writeBatch = adminDb.batch();
-        for (const job of batch) {
-          const docRef = adminDb.collection("jobs").doc(job.id);
-          const clean = JSON.parse(JSON.stringify(job));
-          writeBatch.set(docRef, clean, { merge: true });
-        }
-        return writeBatch.commit();
+    // Check which jobs already exist in Firestore — only write new ones
+    const existingIds = new Set<string>();
+    const idCheckBatches = chunk(deduped, 100);
+    for (const batch of idCheckBatches) {
+      const refs = batch.map((j) => adminDb.collection("jobs").doc(j.id));
+      const snaps = await adminDb.getAll(...refs);
+      snaps.forEach((snap) => {
+        if (snap.exists) existingIds.add(snap.id);
       });
-      await Promise.all(promises);
+    }
+
+    const newJobs = deduped.filter((j) => !existingIds.has(j.id));
+
+    // Only write new jobs to Firestore
+    if (newJobs.length > 0) {
+      const batches = chunk(newJobs, 250);
+      const CONCURRENT_BATCHES = 3;
+      for (let i = 0; i < batches.length; i += CONCURRENT_BATCHES) {
+        const group = batches.slice(i, i + CONCURRENT_BATCHES);
+        const promises = group.map((batch) => {
+          const writeBatch = adminDb.batch();
+          for (const job of batch) {
+            const docRef = adminDb.collection("jobs").doc(job.id);
+            const clean = JSON.parse(JSON.stringify(job));
+            writeBatch.set(docRef, clean);
+          }
+          return writeBatch.commit();
+        });
+        await Promise.all(promises);
+      }
     }
 
     // Clean up stale jobs older than 21 days
@@ -186,8 +201,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       fetched: allJobs.length,
-      ingested: deduped.length,
-      skipped: allJobs.length - deduped.length,
+      deduped: deduped.length,
+      newJobs: newJobs.length,
+      alreadyExisted: existingIds.size,
       deleted: deletedCount,
       errors,
     });
