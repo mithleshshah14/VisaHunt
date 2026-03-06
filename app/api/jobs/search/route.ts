@@ -34,35 +34,28 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(cached);
     }
 
-    // Build Firestore query
+    // Build Firestore query — keep it simple to minimize composite indexes needed
+    // Only use: isActive + ONE of (country, techStack, searchTokens) + orderBy
+    // Everything else is post-filtered
     let query: FirebaseFirestore.Query = adminDb
       .collection("jobs")
       .where("isActive", "==", true);
 
+    // Pick the most selective Firestore-level filter
+    // Priority: country (equality, most common) > techStack (array-contains) > text search
+    let usedArrayContains = false;
     if (filters.country) {
       query = query.where("country", "==", filters.country.toUpperCase());
     }
 
-    if (filters.verifiedOnly) {
-      query = query.where("verifiedSponsor", "==", true);
-    }
-
-    if (filters.experienceLevel) {
-      query = query.where("experienceLevel", "==", filters.experienceLevel);
-    }
-
-    if (filters.remote) {
-      query = query.where("remote", "==", filters.remote);
-    }
-
-    // Firestore only supports ONE array-contains per query
-    // Priority: techStack filter > text search (techStack is more selective)
     if (filters.techStack && filters.techStack.length > 0) {
       query = query.where("techStackLower", "array-contains", filters.techStack[0].toLowerCase());
+      usedArrayContains = true;
     } else if (filters.q) {
       const searchToken = filters.q.toLowerCase().trim().split(/\s+/)[0];
       if (searchToken && searchToken.length > 2) {
         query = query.where("searchTokens", "array-contains", searchToken);
+        usedArrayContains = true;
       }
     }
 
@@ -76,18 +69,31 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Overshoot when post-filtering is needed (multi-tech + search combo, salary, postedWithin)
-    const needsPostFilter = (filters.techStack && filters.techStack.length > 1) ||
-      (filters.q && filters.techStack?.length) || filters.salaryMin || filters.postedWithin;
-    const fetchLimit = needsPostFilter ? Math.min(filters.limit! * 5, 200) : filters.limit! + 1;
+    // Fetch more when post-filtering is needed
+    const hasPostFilters = filters.verifiedOnly || filters.experienceLevel ||
+      filters.remote || filters.salaryMin || filters.postedWithin ||
+      (filters.techStack && filters.techStack.length > 1) ||
+      (filters.q && usedArrayContains && filters.techStack?.length);
+    const fetchLimit = hasPostFilters ? Math.min(filters.limit! * 10, 500) : filters.limit! + 1;
     query = query.limit(fetchLimit);
 
     const snap = await query.get();
-    const docs = snap.docs;
-    const allJobs = docs.map((doc) => doc.data() as NormalizedJob);
+    const allJobs = snap.docs.map((doc) => doc.data() as NormalizedJob);
 
-    // Post-filter for things Firestore can't handle
+    // Post-filter everything Firestore doesn't handle
     let filtered = allJobs;
+
+    if (filters.verifiedOnly) {
+      filtered = filtered.filter((j) => j.verifiedSponsor === true);
+    }
+
+    if (filters.experienceLevel) {
+      filtered = filtered.filter((j) => j.experienceLevel === filters.experienceLevel);
+    }
+
+    if (filters.remote) {
+      filtered = filtered.filter((j) => j.remote === filters.remote);
+    }
 
     if (filters.postedWithin) {
       const cutoff = new Date();
@@ -101,7 +107,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Post-filter additional tech stack items (first one handled by Firestore array-contains)
+    // Post-filter additional tech stack items (first one handled by Firestore)
     if (filters.techStack && filters.techStack.length > 1) {
       const extraTechs = filters.techStack.slice(1).map((t) => t.toLowerCase());
       filtered = filtered.filter((j) =>
