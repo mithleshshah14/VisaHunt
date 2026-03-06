@@ -55,10 +55,8 @@ export async function GET(req: NextRequest) {
       query = query.where("remote", "==", filters.remote);
     }
 
-    if (filters.techStack && filters.techStack.length > 0) {
-      // Firestore only supports one array-contains per query
-      query = query.where("techStackLower", "array-contains", filters.techStack[0].toLowerCase());
-    }
+    // NOTE: techStack filtering moved to post-filter to avoid composite index requirement
+    // Firestore only supports one array-contains per query anyway
 
     if (filters.q) {
       // Use searchTokens for basic text search
@@ -78,15 +76,18 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    query = query.limit(filters.limit! + 1); // Fetch one extra to check hasMore
+    // Fetch more when post-filtering is needed (techStack, salary, postedWithin)
+    const needsPostFilter = (filters.techStack && filters.techStack.length > 0) ||
+      filters.salaryMin || filters.postedWithin;
+    const fetchLimit = needsPostFilter ? Math.min(filters.limit! * 5, 200) : filters.limit! + 1;
+    query = query.limit(fetchLimit);
 
     const snap = await query.get();
     const docs = snap.docs;
-    const hasMore = docs.length > filters.limit!;
-    const jobs = docs.slice(0, filters.limit!).map((doc) => doc.data() as NormalizedJob);
+    const allJobs = docs.map((doc) => doc.data() as NormalizedJob);
 
     // Post-filter for things Firestore can't handle
-    let filtered = jobs;
+    let filtered = allJobs;
 
     if (filters.postedWithin) {
       const cutoff = new Date();
@@ -100,18 +101,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Multi-tech filter (post-filter for additional techs beyond the first)
-    if (filters.techStack && filters.techStack.length > 1) {
-      const extraTechs = filters.techStack.slice(1).map((t) => t.toLowerCase());
+    // Tech stack filter (post-filter to avoid composite index requirement)
+    if (filters.techStack && filters.techStack.length > 0) {
+      const techs = filters.techStack.map((t) => t.toLowerCase());
       filtered = filtered.filter((j) =>
-        extraTechs.every((t) => (j.techStackLower || []).includes(t))
+        techs.every((t) => (j.techStackLower || []).includes(t))
       );
     }
 
+    const hasMore = filtered.length > filters.limit!;
+    const paged = filtered.slice(0, filters.limit!);
+    const lastDoc = paged.length > 0 ? paged[paged.length - 1] : null;
+
     const response: SearchResponse = {
-      jobs: filtered,
-      totalCount: filtered.length,
-      cursor: hasMore ? docs[docs.length - 2]?.id : undefined,
+      jobs: paged,
+      totalCount: paged.length,
+      cursor: hasMore && lastDoc ? lastDoc.id : undefined,
       hasMore,
     };
 
