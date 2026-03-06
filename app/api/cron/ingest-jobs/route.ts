@@ -124,10 +124,11 @@ export async function POST(req: NextRequest) {
       errors.push(`Stats update: ${e}`);
     }
 
-    // Invalidate search caches (best-effort)
+    // Invalidate caches (best-effort)
     try {
       await invalidateCache("jobs:search:*");
       await invalidateCache("jobs:trending:*");
+      await invalidateCache("jobs:stats:*");
     } catch {}
 
     // Save ingestion log (best-effort)
