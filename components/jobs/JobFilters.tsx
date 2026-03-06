@@ -18,11 +18,11 @@ const REMOTE_OPTIONS: { value: RemoteType; label: string }[] = [
 ];
 
 const POSTED_WITHIN_OPTIONS: { value: number | undefined; label: string }[] = [
-  { value: undefined, label: "3 weeks" },
+  { value: undefined, label: "Any time" },
   { value: 7, label: "Past week" },
   { value: 14, label: "2 weeks" },
+  { value: 21, label: "3 weeks" },
   { value: 30, label: "Past month" },
-  { value: 90, label: "Any time" },
 ];
 
 const POPULAR_TECH = [

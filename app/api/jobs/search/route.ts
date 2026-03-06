@@ -86,11 +86,12 @@ export async function GET(req: NextRequest) {
     // Post-filter everything Firestore doesn't handle
     let filtered = allJobs;
 
-    // Default: hide jobs older than 3 weeks unless a custom postedWithin is set
-    const maxAgeDays = filters.postedWithin || 21;
-    const ageCutoff = new Date();
-    ageCutoff.setDate(ageCutoff.getDate() - maxAgeDays);
-    filtered = filtered.filter((j) => new Date(j.postedDate) >= ageCutoff);
+    // Only filter by age when user explicitly selects a time range
+    if (filters.postedWithin) {
+      const ageCutoff = new Date();
+      ageCutoff.setDate(ageCutoff.getDate() - filters.postedWithin);
+      filtered = filtered.filter((j) => new Date(j.postedDate) >= ageCutoff);
+    }
 
     if (filters.experienceLevel) {
       filtered = filtered.filter((j) => j.experienceLevel === filters.experienceLevel);
