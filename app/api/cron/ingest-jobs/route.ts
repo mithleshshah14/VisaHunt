@@ -130,6 +130,33 @@ export async function POST(req: NextRequest) {
       await Promise.all(promises);
     }
 
+    // Clean up stale jobs older than 21 days
+    let deletedCount = 0;
+    try {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 21);
+      const staleSnap = await adminDb
+        .collection("jobs")
+        .where("postedDate", "<", cutoff.toISOString())
+        .select()
+        .limit(500)
+        .get();
+
+      if (staleSnap.size > 0) {
+        const deleteBatches = chunk(staleSnap.docs, 250);
+        for (const batch of deleteBatches) {
+          const writeBatch = adminDb.batch();
+          for (const doc of batch) {
+            writeBatch.delete(doc.ref);
+          }
+          await writeBatch.commit();
+        }
+        deletedCount = staleSnap.size;
+      }
+    } catch (e) {
+      errors.push(`Cleanup: ${e}`);
+    }
+
     // Update global stats (best-effort)
     try {
       await updateGlobalStats();
@@ -161,6 +188,7 @@ export async function POST(req: NextRequest) {
       fetched: allJobs.length,
       ingested: deduped.length,
       skipped: allJobs.length - deduped.length,
+      deleted: deletedCount,
       errors,
     });
   } catch (err) {
