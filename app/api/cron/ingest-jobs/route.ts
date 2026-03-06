@@ -145,6 +145,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Notify Discord about new jobs
+    if (newJobs.length > 0) {
+      try {
+        await notifyDiscordNewJobs(newJobs);
+      } catch (e) {
+        errors.push(`Discord notify: ${e}`);
+      }
+    }
+
     // Clean up stale jobs older than 21 days
     let deletedCount = 0;
     try {
@@ -269,4 +278,51 @@ async function updateGlobalStats() {
     },
     { merge: true }
   );
+}
+
+const DISCORD_JOBS_WEBHOOK = process.env.DISCORD_JOBS_WEBHOOK_URL;
+
+async function notifyDiscordNewJobs(jobs: NormalizedJob[]) {
+  if (!DISCORD_JOBS_WEBHOOK) return;
+
+  // Group jobs by country for a cleaner summary
+  const byCountry: Record<string, NormalizedJob[]> = {};
+  for (const job of jobs) {
+    const key = job.countryName || job.country;
+    if (!byCountry[key]) byCountry[key] = [];
+    byCountry[key].push(job);
+  }
+
+  // Post a summary embed + individual job listings (max 10 to avoid spam)
+  const topJobs = jobs.slice(0, 10);
+  const fields = topJobs.map((job) => ({
+    name: job.title,
+    value: `**${job.company}** — ${job.location}${job.verifiedSponsor ? " ✅" : ""}\n[Apply](${job.url}) · [Details](https://visa-hunt.com/jobs/${job.id})`,
+    inline: false,
+  }));
+
+  const countrySummary = Object.entries(byCountry)
+    .sort(([, a], [, b]) => b.length - a.length)
+    .slice(0, 8)
+    .map(([country, list]) => `${country}: **${list.length}**`)
+    .join(" · ");
+
+  const embed = {
+    title: `🆕 ${jobs.length} New Visa-Sponsored Jobs`,
+    description: `${countrySummary}\n\n[Browse all jobs →](https://visa-hunt.com/jobs)`,
+    color: 0x0ea5e9, // sky-500
+    fields,
+    footer: {
+      text: jobs.length > 10
+        ? `Showing 10 of ${jobs.length} new jobs · visa-hunt.com`
+        : "visa-hunt.com",
+    },
+    timestamp: new Date().toISOString(),
+  };
+
+  await fetch(DISCORD_JOBS_WEBHOOK, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ embeds: [embed] }),
+  });
 }
