@@ -41,11 +41,14 @@ export async function GET(req: NextRequest) {
       .collection("jobs")
       .where("isActive", "==", true);
 
-    // Pick the most selective Firestore-level filter
-    // Priority: country (equality, most common) > techStack (array-contains) > text search
+    // Equality filters are cheap in Firestore — use them at query level
     let usedArrayContains = false;
     if (filters.country) {
       query = query.where("country", "==", filters.country.toUpperCase());
+    }
+
+    if (filters.verifiedOnly) {
+      query = query.where("verifiedSponsor", "==", true);
     }
 
     if (filters.techStack && filters.techStack.length > 0) {
@@ -70,7 +73,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch more when post-filtering is needed
-    const hasPostFilters = filters.verifiedOnly || filters.experienceLevel ||
+    const hasPostFilters = filters.experienceLevel ||
       filters.remote || filters.salaryMin || filters.postedWithin ||
       (filters.techStack && filters.techStack.length > 1) ||
       (filters.q && usedArrayContains && filters.techStack?.length);
@@ -82,10 +85,6 @@ export async function GET(req: NextRequest) {
 
     // Post-filter everything Firestore doesn't handle
     let filtered = allJobs;
-
-    if (filters.verifiedOnly) {
-      filtered = filtered.filter((j) => j.verifiedSponsor === true);
-    }
 
     if (filters.experienceLevel) {
       filtered = filtered.filter((j) => j.experienceLevel === filters.experienceLevel);
