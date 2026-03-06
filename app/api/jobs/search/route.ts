@@ -55,11 +55,11 @@ export async function GET(req: NextRequest) {
       query = query.where("remote", "==", filters.remote);
     }
 
-    // NOTE: techStack filtering moved to post-filter to avoid composite index requirement
-    // Firestore only supports one array-contains per query anyway
-
-    if (filters.q) {
-      // Use searchTokens for basic text search
+    // Firestore only supports ONE array-contains per query
+    // Priority: techStack filter > text search (techStack is more selective)
+    if (filters.techStack && filters.techStack.length > 0) {
+      query = query.where("techStackLower", "array-contains", filters.techStack[0].toLowerCase());
+    } else if (filters.q) {
       const searchToken = filters.q.toLowerCase().trim().split(/\s+/)[0];
       if (searchToken && searchToken.length > 2) {
         query = query.where("searchTokens", "array-contains", searchToken);
@@ -76,9 +76,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Fetch more when post-filtering is needed (techStack, salary, postedWithin)
-    const needsPostFilter = (filters.techStack && filters.techStack.length > 0) ||
-      filters.salaryMin || filters.postedWithin;
+    // Overshoot when post-filtering is needed (multi-tech + search combo, salary, postedWithin)
+    const needsPostFilter = (filters.techStack && filters.techStack.length > 1) ||
+      (filters.q && filters.techStack?.length) || filters.salaryMin || filters.postedWithin;
     const fetchLimit = needsPostFilter ? Math.min(filters.limit! * 5, 200) : filters.limit! + 1;
     query = query.limit(fetchLimit);
 
@@ -101,11 +101,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Tech stack filter (post-filter to avoid composite index requirement)
-    if (filters.techStack && filters.techStack.length > 0) {
-      const techs = filters.techStack.map((t) => t.toLowerCase());
+    // Post-filter additional tech stack items (first one handled by Firestore array-contains)
+    if (filters.techStack && filters.techStack.length > 1) {
+      const extraTechs = filters.techStack.slice(1).map((t) => t.toLowerCase());
       filtered = filtered.filter((j) =>
-        techs.every((t) => (j.techStackLower || []).includes(t))
+        extraTechs.every((t) => (j.techStackLower || []).includes(t))
+      );
+    }
+
+    // Post-filter text search when techStack took the array-contains slot
+    if (filters.q && filters.techStack && filters.techStack.length > 0) {
+      const q = filters.q.toLowerCase().trim();
+      filtered = filtered.filter((j) =>
+        j.title.toLowerCase().includes(q) ||
+        j.company.toLowerCase().includes(q) ||
+        j.location.toLowerCase().includes(q)
       );
     }
 
