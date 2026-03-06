@@ -123,6 +123,28 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+// Phrases that indicate the job does NOT sponsor visas
+const NO_VISA_PATTERNS = [
+  /\bnot\b.{0,20}\bsponso/i,
+  /\bno\b.{0,10}\bvisa\s*sponso/i,
+  /\bunable\s+to\s+sponsor/i,
+  /\bwill\s+not\s+sponsor/i,
+  /\bdoes\s+not\s+sponsor/i,
+  /\bdo\s+not\s+sponsor/i,
+  /\bwon'?t\s+sponsor/i,
+  /\bcannot\s+sponsor/i,
+  /\bcan'?t\s+sponsor/i,
+  /\bwithout\s+.{0,20}sponsor/i,
+  /\bmust\s+be\s+(legally\s+)?authorized\s+to\s+work/i,
+  /\bmust\s+have\s+(existing\s+)?(work|employment)\s+(authorization|permit)/i,
+  /\brequires?\s+(existing\s+)?(work|employment)\s+(authorization|permit)/i,
+  /\bno\s+(immigration|relocation)\s+(sponsorship|assistance)/i,
+];
+
+function hasNoVisaSignal(text: string): boolean {
+  return NO_VISA_PATTERNS.some((pattern) => pattern.test(text));
+}
+
 function normalizeGreenhouseJob(
   job: GreenhouseJob,
   companyName: string
@@ -145,9 +167,18 @@ function normalizeGreenhouseJob(
   if (!country) return null;
 
   const plainContent = job.content ? stripHtml(job.content) : "";
+
+  // Skip jobs that explicitly say they don't sponsor visas
+  if (plainContent && hasNoVisaSignal(plainContent)) {
+    return null;
+  }
+
   const techStack = extractTechStack(job.title + " " + plainContent);
   const description = plainContent || `${job.title} at ${companyName} in ${locationName}`;
   const now = new Date().toISOString();
+
+  // If description mentions visa/relocation positively, mark as verified
+  const hasPositiveVisa = /\b(visa\s*sponsor|relocation\s*(support|assist|package))/i.test(plainContent);
 
   return {
     id: generateJobId(companyName, job.title, locationName),
@@ -168,8 +199,8 @@ function normalizeGreenhouseJob(
     expiresAt: calculateExpiryDate(),
     techStack,
     techStackLower: techStack.map((t) => t.toLowerCase()),
-    verifiedSponsor: true,
-    sponsorTier: "source-listed",
+    verifiedSponsor: hasPositiveVisa,
+    sponsorTier: hasPositiveVisa ? "source-listed" : "inferred",
     searchTokens: generateSearchTokens({
       title: job.title,
       company: companyName,
