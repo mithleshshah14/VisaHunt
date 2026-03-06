@@ -99,6 +99,17 @@ export function JobFilters({ filters, onFilterChange }: JobFiltersProps) {
         </div>
       </div>
 
+      {/* Verified only toggle */}
+      <label className="flex cursor-pointer items-center gap-2">
+        <input
+          type="checkbox"
+          checked={filters.verifiedOnly || false}
+          onChange={(e) => updateFilter("verifiedOnly", e.target.checked || undefined)}
+          className="h-4 w-4 rounded border-navy-600 bg-navy-700 text-sky-500 focus:ring-sky-500"
+        />
+        <span className="text-sm text-slate-300">Verified sponsors only</span>
+      </label>
+
       {/* Toggle more filters */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -173,16 +184,6 @@ export function JobFilters({ filters, onFilterChange }: JobFiltersProps) {
             </div>
           </div>
 
-          {/* Verified only toggle */}
-          <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={filters.verifiedOnly || false}
-              onChange={(e) => updateFilter("verifiedOnly", e.target.checked || undefined)}
-              className="h-4 w-4 rounded border-navy-600 bg-navy-700 text-sky-500 focus:ring-sky-500"
-            />
-            <span className="text-sm text-slate-300">Verified sponsors only</span>
-          </label>
         </div>
       )}
     </div>
