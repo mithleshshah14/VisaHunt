@@ -197,8 +197,8 @@ function JobListingsContent() {
           {/* Sort + count */}
           <div className="mb-4 flex items-center justify-between">
             <span className="text-sm text-slate-400">
-              {totalCount > 0
-                ? `${totalCount} ${totalCount === 1 ? "job" : "jobs"} found`
+              {(totalCount || jobs.length) > 0
+                ? `${totalCount || jobs.length} ${(totalCount || jobs.length) === 1 ? "job" : "jobs"} found`
                 : loading
                   ? "Searching..."
                   : "No jobs found"}
