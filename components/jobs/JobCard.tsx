@@ -5,6 +5,7 @@ import type { NormalizedJob } from "@/lib/types";
 import { formatSalary, formatINR, timeAgo } from "@/lib/utils";
 import { COUNTRY_MAP } from "@/lib/types";
 import { SaveJobButton } from "@/components/jobs/SaveJobButton";
+import { ReportJobButton } from "@/components/jobs/ReportJobButton";
 
 interface JobCardProps {
   job: NormalizedJob;
@@ -116,6 +117,9 @@ export function JobCard({ job }: JobCardProps) {
         >
           View Details
         </Link>
+        <span className="ml-auto">
+          <ReportJobButton jobId={job.id} size="sm" />
+        </span>
       </div>
     </div>
   );

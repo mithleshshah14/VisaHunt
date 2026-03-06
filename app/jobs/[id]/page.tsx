@@ -8,6 +8,7 @@ import { SaveJobButton } from "@/components/jobs/SaveJobButton";
 import type { NormalizedJob } from "@/lib/types";
 import { formatSalary, formatINR, timeAgo } from "@/lib/utils";
 import { COUNTRY_MAP } from "@/lib/types";
+import { ReportJobButton } from "@/components/jobs/ReportJobButton";
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -162,6 +163,7 @@ export default function JobDetailPage() {
                 </svg>
               </a>
               <SaveJobButton jobId={job.id} />
+              <ReportJobButton jobId={job.id} size="md" />
             </div>
           </div>
 

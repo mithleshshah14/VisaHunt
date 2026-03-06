@@ -28,7 +28,9 @@ interface JobFiltersProps {
 }
 
 export function JobFilters({ filters, onFilterChange }: JobFiltersProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(
+    !!(filters.experienceLevel || filters.remote)
+  );
 
   const updateFilter = (key: keyof SearchFilters, value: any) => {
     onFilterChange({ ...filters, [key]: value || undefined, cursor: undefined });

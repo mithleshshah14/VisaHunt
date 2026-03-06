@@ -31,10 +31,16 @@ function JobListingsContent() {
   const observerRef = useRef<IntersectionObserver>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const [filters, setFilters] = useState<SearchFilters>({
-    q: searchParams.get("q") || undefined,
-    country: searchParams.get("country") || undefined,
-    verifiedOnly: searchParams.get("verifiedOnly") === "true",
+  const [filters, setFilters] = useState<SearchFilters>(() => {
+    const techStack = searchParams.get("techStack");
+    return {
+      q: searchParams.get("q") || undefined,
+      country: searchParams.get("country") || undefined,
+      verifiedOnly: searchParams.get("verifiedOnly") === "true",
+      techStack: techStack ? techStack.split(",") : undefined,
+      experienceLevel: (searchParams.get("experienceLevel") as SearchFilters["experienceLevel"]) || undefined,
+      remote: (searchParams.get("remote") as SearchFilters["remote"]) || undefined,
+    };
   });
 
   // Fetch stats
@@ -111,6 +117,9 @@ function JobListingsContent() {
     if (newFilters.q) params.set("q", newFilters.q);
     if (newFilters.country) params.set("country", newFilters.country);
     if (newFilters.verifiedOnly) params.set("verifiedOnly", "true");
+    if (newFilters.techStack?.length) params.set("techStack", newFilters.techStack.join(","));
+    if (newFilters.experienceLevel) params.set("experienceLevel", newFilters.experienceLevel);
+    if (newFilters.remote) params.set("remote", newFilters.remote);
     router.replace(`/jobs?${params.toString()}`, { scroll: false });
   };
 
