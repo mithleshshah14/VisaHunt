@@ -5,9 +5,9 @@ import { useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 
 const navLinks = [
-  { href: "/jobs", label: "Jobs" },
   { href: "/visa-guides", label: "Visa Guides" },
   { href: "/sponsors", label: "Sponsors" },
+  { href: "/salary-comparison", label: "Salaries" },
 ];
 
 export function Navbar() {
