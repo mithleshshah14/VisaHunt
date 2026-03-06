@@ -6,12 +6,10 @@ import {
   fetchHimalayasJobs,
   fetchGreenhouseJobs,
   fetchLandingJobs,
-  fetchGitHubAwesomeJobs,
-  fetchVisaSponsorJobs,
 } from "@/lib/sources";
-import { verifySponsor } from "@/lib/sponsors";
-import { convertToINR } from "@/lib/exchange";
-import { generateDedupeKey } from "@/lib/normalizer";
+import { batchVerifySponsors } from "@/lib/sponsors";
+import { getExchangeRates, FALLBACK_RATES } from "@/lib/exchange";
+import { generateDedupeKey, normalizeCompanyName } from "@/lib/normalizer";
 import { chunk } from "@/lib/utils";
 import type { NormalizedJob } from "@/lib/types";
 
@@ -32,14 +30,12 @@ export async function POST(req: NextRequest) {
     // Fetch from all sources in parallel
     const results = await Promise.allSettled([
       fetchArbeitnowJobs(),
-      fetchHimalayasJobs(25),    // ~500 jobs (25 pages × 20)
-      fetchGreenhouseJobs(),      // ~3,000-5,000 jobs from 30+ companies
+      fetchHimalayasJobs(10),    // ~200 jobs (10 pages × 20)
+      fetchGreenhouseJobs(),      // ~3,000-5,000 jobs from 33 companies (all parallel)
       fetchLandingJobs(),         // ~50 European visa jobs
-      fetchGitHubAwesomeJobs(),   // Dead source, kept for compat
-      fetchVisaSponsorJobs(),     // Dead source, kept for compat
     ]);
 
-    const sourceNames = ["Arbeitnow", "Himalayas", "Greenhouse", "LandingJobs", "GitHub", "VisaSponsor"];
+    const sourceNames = ["Arbeitnow", "Himalayas", "Greenhouse", "LandingJobs"];
     const allJobs: NormalizedJob[] = [];
 
     results.forEach((result, i) => {
@@ -65,34 +61,51 @@ export async function POST(req: NextRequest) {
     // Deduplicate
     const deduped = deduplicateJobs(allJobs);
 
-    // Verify sponsors + convert salaries (skip if it fails per-job)
-    for (const job of deduped) {
-      try {
-        const sponsorResult = await verifySponsor(job.company, job.country);
-        job.verifiedSponsor = sponsorResult.verified;
-        job.sponsorTier = sponsorResult.tier;
-        if (sponsorResult.details) {
-          job.sponsorDetails = sponsorResult.details;
+    // Verify sponsors — deduplicate by company+country, then batch
+    try {
+      const uniqueCompanies = new Map<string, { company: string; country: string }>();
+      for (const job of deduped) {
+        const key = `${normalizeCompanyName(job.company)}|${job.country}`;
+        if (!uniqueCompanies.has(key)) {
+          uniqueCompanies.set(key, { company: job.company, country: job.country });
         }
-      } catch {
-        // Skip sponsor verification for this job
       }
 
-      try {
-        if (job.salaryMin && job.salaryCurrency) {
-          job.salaryMinINR = await convertToINR(job.salaryMin, job.salaryCurrency);
+      const sponsorResults = await batchVerifySponsors([...uniqueCompanies.values()]);
+
+      for (const job of deduped) {
+        const key = `${normalizeCompanyName(job.company)}|${job.country}`;
+        const result = sponsorResults.get(key);
+        if (result) {
+          job.verifiedSponsor = result.verified;
+          job.sponsorTier = result.tier;
+          if (result.details) job.sponsorDetails = result.details;
         }
-        if (job.salaryMax && job.salaryCurrency) {
-          job.salaryMaxINR = await convertToINR(job.salaryMax, job.salaryCurrency);
-        }
-      } catch {
-        // Skip salary conversion for this job
       }
+    } catch (e) {
+      errors.push(`Sponsor verification: ${e}`);
     }
 
-    // Batch write to Firestore (499 per batch)
+    // Convert salaries — fetch rates once, then convert synchronously
+    try {
+      const rates = await getExchangeRates() || FALLBACK_RATES;
+      for (const job of deduped) {
+        if (job.salaryMin && job.salaryCurrency && job.salaryCurrency !== "INR") {
+          const rate = rates[job.salaryCurrency.toUpperCase()];
+          if (rate) job.salaryMinINR = Math.round(job.salaryMin * rate);
+        }
+        if (job.salaryMax && job.salaryCurrency && job.salaryCurrency !== "INR") {
+          const rate = rates[job.salaryCurrency.toUpperCase()];
+          if (rate) job.salaryMaxINR = Math.round(job.salaryMax * rate);
+        }
+      }
+    } catch (e) {
+      errors.push(`Salary conversion: ${e}`);
+    }
+
+    // Batch write to Firestore (499 per batch, parallel commits)
     const batches = chunk(deduped, 499);
-    for (const batch of batches) {
+    const batchPromises = batches.map((batch) => {
       const writeBatch = adminDb.batch();
       for (const job of batch) {
         const docRef = adminDb.collection("jobs").doc(job.id);
@@ -100,8 +113,9 @@ export async function POST(req: NextRequest) {
         const clean = JSON.parse(JSON.stringify(job));
         writeBatch.set(docRef, clean, { merge: true });
       }
-      await writeBatch.commit();
-    }
+      return writeBatch.commit();
+    });
+    await Promise.all(batchPromises);
 
     // Update global stats (best-effort)
     try {

@@ -124,7 +124,7 @@ export async function batchVerifySponsors(
   const results = new Map<string, SponsorMatch>();
 
   // Process in parallel but limit concurrency
-  const BATCH_SIZE = 10;
+  const BATCH_SIZE = 25;
   for (let i = 0; i < companies.length; i += BATCH_SIZE) {
     const batch = companies.slice(i, i + BATCH_SIZE);
     const promises = batch.map(async ({ company, country }) => {
