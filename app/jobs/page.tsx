@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { JobCard } from "@/components/jobs/JobCard";
 import { JobFilters } from "@/components/jobs/JobFilters";
@@ -8,6 +8,18 @@ import type { NormalizedJob, SearchFilters, SearchResponse, GlobalStats } from "
 import { COUNTRY_MAP } from "@/lib/types";
 
 export default function JobListingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-500 border-t-transparent" />
+      </div>
+    }>
+      <JobListingsContent />
+    </Suspense>
+  );
+}
+
+function JobListingsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [jobs, setJobs] = useState<NormalizedJob[]>([]);
