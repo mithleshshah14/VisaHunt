@@ -123,8 +123,14 @@ export async function GET(req: NextRequest) {
     const paged = filtered.slice(0, filters.limit!);
     const lastDoc = paged.length > 0 ? paged[paged.length - 1] : null;
 
+    // Strip full description to reduce cache size (list view only needs snippet)
+    const lightweight = paged.map(({ description, ...rest }) => ({
+      ...rest,
+      description: rest.descriptionSnippet,
+    }));
+
     const response: SearchResponse = {
-      jobs: paged,
+      jobs: lightweight as NormalizedJob[],
       totalCount: paged.length,
       cursor: hasMore && lastDoc ? lastDoc.id : undefined,
       hasMore,
