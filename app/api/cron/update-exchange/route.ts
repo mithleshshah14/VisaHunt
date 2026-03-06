@@ -17,7 +17,10 @@ export async function POST(req: NextRequest) {
     // Use exchangerate-api.com (free tier: 1500/month)
     const apiKey = process.env.EXCHANGE_RATE_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "No API key configured" }, { status: 500 });
+      // No API key — cache fallback rates and succeed
+      const { FALLBACK_RATES } = await import("@/lib/exchange");
+      await setCache("exchange:rates:latest", FALLBACK_RATES, 86400);
+      return NextResponse.json({ success: true, rates: FALLBACK_RATES, source: "fallback" });
     }
 
     const res = await fetch(

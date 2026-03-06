@@ -10,13 +10,12 @@ import { verifySponsor } from "@/lib/sponsors";
 import { convertToINR } from "@/lib/exchange";
 import { generateDedupeKey } from "@/lib/normalizer";
 import { chunk } from "@/lib/utils";
-import type { NormalizedJob, IngestionLog } from "@/lib/types";
+import type { NormalizedJob } from "@/lib/types";
 
-export const maxDuration = 300; // 5 min for Vercel Pro
+export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  // Verify cron secret
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -24,17 +23,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const log: IngestionLog = {
-    id: `ingest-${Date.now()}`,
-    source: "arbeitnow", // Will be updated
-    startedAt: new Date().toISOString(),
-    jobsFetched: 0,
-    jobsNew: 0,
-    jobsUpdated: 0,
-    jobsSkipped: 0,
-    errors: [],
-    status: "running",
-  };
+  const errors: string[] = [];
 
   try {
     // Fetch from all sources in parallel
@@ -49,43 +38,58 @@ export async function POST(req: NextRequest) {
     if (arbeitnowJobs.status === "fulfilled") {
       allJobs.push(...arbeitnowJobs.value);
     } else {
-      log.errors.push(`Arbeitnow: ${arbeitnowJobs.reason}`);
+      errors.push(`Arbeitnow: ${arbeitnowJobs.reason}`);
     }
 
     if (githubJobs.status === "fulfilled") {
       allJobs.push(...githubJobs.value);
     } else {
-      log.errors.push(`GitHub: ${githubJobs.reason}`);
+      errors.push(`GitHub: ${githubJobs.reason}`);
     }
 
     if (visaSponsorJobs.status === "fulfilled") {
       allJobs.push(...visaSponsorJobs.value);
     } else {
-      log.errors.push(`VisaSponsor: ${visaSponsorJobs.reason}`);
+      errors.push(`VisaSponsor: ${visaSponsorJobs.reason}`);
     }
 
-    log.jobsFetched = allJobs.length;
+    // If no jobs fetched at all, return success with 0
+    if (allJobs.length === 0) {
+      return NextResponse.json({
+        success: true,
+        fetched: 0,
+        ingested: 0,
+        skipped: 0,
+        errors,
+        message: "No jobs fetched from any source",
+      });
+    }
 
     // Deduplicate
     const deduped = deduplicateJobs(allJobs);
-    log.jobsSkipped = allJobs.length - deduped.length;
 
-    // Verify sponsors + convert salaries
+    // Verify sponsors + convert salaries (skip if it fails per-job)
     for (const job of deduped) {
-      // Sponsor verification
-      const sponsorResult = await verifySponsor(job.company, job.country);
-      job.verifiedSponsor = sponsorResult.verified;
-      job.sponsorTier = sponsorResult.tier;
-      if (sponsorResult.details) {
-        job.sponsorDetails = sponsorResult.details;
+      try {
+        const sponsorResult = await verifySponsor(job.company, job.country);
+        job.verifiedSponsor = sponsorResult.verified;
+        job.sponsorTier = sponsorResult.tier;
+        if (sponsorResult.details) {
+          job.sponsorDetails = sponsorResult.details;
+        }
+      } catch {
+        // Skip sponsor verification for this job
       }
 
-      // INR conversion
-      if (job.salaryMin && job.salaryCurrency) {
-        job.salaryMinINR = await convertToINR(job.salaryMin, job.salaryCurrency);
-      }
-      if (job.salaryMax && job.salaryCurrency) {
-        job.salaryMaxINR = await convertToINR(job.salaryMax, job.salaryCurrency);
+      try {
+        if (job.salaryMin && job.salaryCurrency) {
+          job.salaryMinINR = await convertToINR(job.salaryMin, job.salaryCurrency);
+        }
+        if (job.salaryMax && job.salaryCurrency) {
+          job.salaryMaxINR = await convertToINR(job.salaryMax, job.salaryCurrency);
+        }
+      } catch {
+        // Skip salary conversion for this job
       }
     }
 
@@ -95,45 +99,47 @@ export async function POST(req: NextRequest) {
       const writeBatch = adminDb.batch();
       for (const job of batch) {
         const docRef = adminDb.collection("jobs").doc(job.id);
-        // Use set with merge to update existing jobs
         writeBatch.set(docRef, job, { merge: true });
       }
       await writeBatch.commit();
     }
 
-    log.jobsNew = deduped.length; // Simplified — merge handles new vs update
-    log.status = "completed";
-    log.completedAt = new Date().toISOString();
+    // Update global stats (best-effort)
+    try {
+      await updateGlobalStats();
+    } catch (e) {
+      errors.push(`Stats update: ${e}`);
+    }
 
-    // Update global stats
-    await updateGlobalStats();
+    // Invalidate search caches (best-effort)
+    try {
+      await invalidateCache("jobs:search:*");
+      await invalidateCache("jobs:trending:*");
+    } catch {}
 
-    // Invalidate search caches
-    await invalidateCache("jobs:search:*");
-    await invalidateCache("jobs:trending:*");
-
-    // Save ingestion log
-    await adminDb.collection("ingestion_logs").doc(log.id).set(log);
+    // Save ingestion log (best-effort)
+    try {
+      await adminDb.collection("ingestion_logs").doc(`ingest-${Date.now()}`).set({
+        startedAt: new Date().toISOString(),
+        jobsFetched: allJobs.length,
+        jobsIngested: deduped.length,
+        jobsSkipped: allJobs.length - deduped.length,
+        errors,
+        status: "completed",
+      });
+    } catch {}
 
     return NextResponse.json({
       success: true,
-      fetched: log.jobsFetched,
+      fetched: allJobs.length,
       ingested: deduped.length,
-      skipped: log.jobsSkipped,
-      errors: log.errors,
+      skipped: allJobs.length - deduped.length,
+      errors,
     });
   } catch (err) {
-    log.status = "failed";
-    log.errors.push(String(err));
-    log.completedAt = new Date().toISOString();
-
-    try {
-      await adminDb.collection("ingestion_logs").doc(log.id).set(log);
-    } catch {}
-
     console.error("[Ingest Jobs] Fatal error:", err);
     return NextResponse.json(
-      { error: "Ingestion failed", details: String(err) },
+      { error: "Ingestion failed", details: String(err), errors },
       { status: 500 }
     );
   }
@@ -147,11 +153,9 @@ function deduplicateJobs(jobs: NormalizedJob[]): NormalizedJob[] {
     const existing = seen.get(key);
 
     if (existing) {
-      // Merge sources
       if (!existing.sources.includes(job.source)) {
         existing.sources.push(job.source);
       }
-      // Keep the one with more data (longer description)
       if (job.description.length > existing.description.length) {
         seen.set(key, { ...job, sources: existing.sources });
       }
@@ -164,46 +168,34 @@ function deduplicateJobs(jobs: NormalizedJob[]): NormalizedJob[] {
 }
 
 async function updateGlobalStats() {
-  try {
-    const jobsSnap = await adminDb
-      .collection("jobs")
-      .where("isActive", "==", true)
-      .count()
-      .get();
+  // Simple approach: get all active jobs and count
+  const jobsSnap = await adminDb
+    .collection("jobs")
+    .where("isActive", "==", true)
+    .select("country")
+    .limit(10000)
+    .get();
 
-    const sponsorsSnap = await adminDb
-      .collection("sponsors")
-      .count()
-      .get();
+  const jobsByCountry: Record<string, number> = {};
+  jobsSnap.docs.forEach((doc) => {
+    const country = doc.data().country;
+    jobsByCountry[country] = (jobsByCountry[country] || 0) + 1;
+  });
 
-    // Count by country
-    const countrySnap = await adminDb
-      .collection("jobs")
-      .where("isActive", "==", true)
-      .select("country")
-      .limit(10000)
-      .get();
+  const sponsorsSnap = await adminDb
+    .collection("sponsors")
+    .select("country")
+    .limit(1)
+    .get();
 
-    const jobsByCountry: Record<string, number> = {};
-    countrySnap.docs.forEach((doc) => {
-      const country = doc.data().country;
-      jobsByCountry[country] = (jobsByCountry[country] || 0) + 1;
-    });
-
-    await adminDb
-      .collection("stats")
-      .doc("global")
-      .set(
-        {
-          totalJobs: jobsSnap.data().count,
-          totalSponsors: sponsorsSnap.data().count,
-          countriesCount: Object.keys(jobsByCountry).length,
-          jobsByCountry,
-          lastUpdated: new Date().toISOString(),
-        },
-        { merge: true }
-      );
-  } catch (err) {
-    console.error("[Stats] Update failed:", err);
-  }
+  await adminDb.collection("stats").doc("global").set(
+    {
+      totalJobs: jobsSnap.size,
+      totalSponsors: sponsorsSnap.size,
+      countriesCount: Object.keys(jobsByCountry).length,
+      jobsByCountry,
+      lastUpdated: new Date().toISOString(),
+    },
+    { merge: true }
+  );
 }

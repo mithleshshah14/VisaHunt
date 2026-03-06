@@ -1,6 +1,6 @@
 import { getCached, setCache } from "@/lib/redis";
 
-const FALLBACK_RATES: Record<string, number> = {
+export const FALLBACK_RATES: Record<string, number> = {
   USD: 83.5,
   EUR: 91.0,
   GBP: 106.0,

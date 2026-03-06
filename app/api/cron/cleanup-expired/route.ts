@@ -15,10 +15,9 @@ export async function POST(req: NextRequest) {
   try {
     const now = new Date().toISOString();
 
-    // Find expired jobs
+    // Find expired jobs (single field query to avoid needing composite index)
     const expiredSnap = await adminDb
       .collection("jobs")
-      .where("isActive", "==", true)
       .where("expiresAt", "<", now)
       .limit(2000)
       .get();
