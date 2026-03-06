@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import { invalidateCache } from "@/lib/redis";
 import {
   fetchArbeitnowJobs,
+  fetchHimalayasJobs,
   fetchGitHubAwesomeJobs,
   fetchVisaSponsorJobs,
 } from "@/lib/sources";
@@ -27,8 +28,9 @@ export async function POST(req: NextRequest) {
 
   try {
     // Fetch from all sources in parallel
-    const [arbeitnowJobs, githubJobs, visaSponsorJobs] = await Promise.allSettled([
+    const [arbeitnowJobs, himalayasJobs, githubJobs, visaSponsorJobs] = await Promise.allSettled([
       fetchArbeitnowJobs(),
+      fetchHimalayasJobs(25), // ~500 jobs (25 pages × 20)
       fetchGitHubAwesomeJobs(),
       fetchVisaSponsorJobs(),
     ]);
@@ -39,6 +41,12 @@ export async function POST(req: NextRequest) {
       allJobs.push(...arbeitnowJobs.value);
     } else {
       errors.push(`Arbeitnow: ${arbeitnowJobs.reason}`);
+    }
+
+    if (himalayasJobs.status === "fulfilled") {
+      allJobs.push(...himalayasJobs.value);
+    } else {
+      errors.push(`Himalayas: ${himalayasJobs.reason}`);
     }
 
     if (githubJobs.status === "fulfilled") {

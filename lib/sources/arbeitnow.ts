@@ -4,7 +4,7 @@ import {
   createSnippet,
   extractTechStack,
   generateSearchTokens,
-  resolveCountryCode,
+  resolveCountryFromLocation,
   getCountryName,
   calculateExpiryDate,
 } from "@/lib/normalizer";
@@ -69,7 +69,7 @@ export async function fetchArbeitnowJobs(maxPages = 5): Promise<NormalizedJob[]>
 }
 
 function normalizeArbeitnowJob(job: ArbeitnowJob): NormalizedJob | null {
-  const country = resolveCountryCode(extractCountryFromLocation(job.location));
+  const country = resolveCountryFromLocation(job.location);
   if (!country) return null;
 
   const techStack = extractTechStack(job.description + " " + job.tags.join(" "));
@@ -110,8 +110,3 @@ function normalizeArbeitnowJob(job: ArbeitnowJob): NormalizedJob | null {
   return normalized;
 }
 
-function extractCountryFromLocation(location: string): string {
-  // Common patterns: "Berlin, Germany" or "London, UK" or "Remote, Germany"
-  const parts = location.split(",").map((p) => p.trim());
-  return parts[parts.length - 1] || "";
-}
