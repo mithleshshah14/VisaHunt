@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession, signIn } from "next-auth/react";
 
 interface ReportJobButtonProps {
   jobId: string;
@@ -8,6 +9,7 @@ interface ReportJobButtonProps {
 }
 
 export function ReportJobButton({ jobId, size = "sm" }: ReportJobButtonProps) {
+  const { data: session } = useSession();
   const [reported, setReported] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -18,6 +20,11 @@ export function ReportJobButton({ jobId, size = "sm" }: ReportJobButtonProps) {
   }, [jobId]);
 
   async function handleReport() {
+    if (!session) {
+      signIn("google");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/jobs/report", {
@@ -64,7 +71,7 @@ export function ReportJobButton({ jobId, size = "sm" }: ReportJobButtonProps) {
           disabled={loading}
           className={`rounded bg-red-500/20 px-2 py-0.5 text-red-400 transition hover:bg-red-500/30 ${size === "sm" ? "text-xs" : "text-sm"}`}
         >
-          {loading ? "..." : "Yes"}
+          {loading ? "..." : "Yes, remove"}
         </button>
         <button
           onClick={() => setShowConfirm(false)}
@@ -78,7 +85,13 @@ export function ReportJobButton({ jobId, size = "sm" }: ReportJobButtonProps) {
 
   return (
     <button
-      onClick={() => setShowConfirm(true)}
+      onClick={() => {
+        if (!session) {
+          signIn("google");
+          return;
+        }
+        setShowConfirm(true);
+      }}
       className={`inline-flex items-center gap-1 text-slate-500 transition hover:text-red-400 ${size === "sm" ? "text-xs" : "text-sm"}`}
       title="Report: No visa sponsorship"
     >
