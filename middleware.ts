@@ -82,7 +82,7 @@ export default function middleware(req: NextRequest) {
     const isPublicPage = PUBLIC_BOT_PATHS.some((p) =>
       pathname === p || pathname.startsWith(`${p}/`)
     );
-    if (!isPublicPage && !pathname.startsWith("/api/og/")) {
+    if (!isPublicPage && !pathname.startsWith("/api/og/") && !pathname.startsWith("/api/cron/")) {
       return new NextResponse("Forbidden", { status: 403 });
     }
   }
