@@ -22,6 +22,8 @@
 - [x] All 6 filters persist in URL params
 - [x] Cursor-based pagination
 - [x] Redis caching (search 15min, trending 1h, stats 15min, exchange 24h, sponsors 24h)
+- [x] NO_VISA_PATTERNS filtering across all 6 sources (14 regex patterns, centralized in normalizer.ts)
+- [x] Remote-Anywhere detection + toggle switch on jobs page (visa-sponsored vs work-from-anywhere)
 
 ### Cron (GitHub Actions)
 - [x] `ingest-jobs` — every 12h (0am/12pm UTC)
@@ -100,11 +102,14 @@
 - [ ] `/contact` — contact form (name, email, subject, message) → Resend API
 
 #### Remote-Anywhere Jobs
-- [ ] Add `remoteAnywhere: boolean` to `NormalizedJob` type
-- [ ] Detection in normalizer: scan description for "work from anywhere", "global remote", "location-independent", "remote worldwide"
-- [ ] Search filter: "Remote Anywhere" option (separate from country-specific remote)
+- [x] Add `remoteAnywhere: boolean` to `NormalizedJob` type
+- [x] Detection in normalizer: 11 regex patterns + location string matching
+- [x] All 6 sources updated with detection logic
+- [x] Mode toggle on /jobs page: "Visa Sponsored" vs "Remote Anywhere" (pill switch with icons)
+- [x] Search API filters by `mode=remote-anywhere` via post-filtering
+- [x] JobCard shows "Worldwide" location + "Work From Anywhere" badge
+- [x] Mode persists in URL params (`?mode=remote-anywhere`)
 - [ ] Landing page section: "Work From Anywhere" trending jobs
-- [ ] Country field shows "Worldwide" for remote-anywhere jobs
 
 #### New Job Sources
 - [ ] `lib/sources/hackernews.ts` — parse monthly "Who is Hiring" thread via HN API
@@ -221,6 +226,7 @@
 ---
 
 ## Known Issues / Tech Debt
+- [x] Non-visa jobs slipping through (esp. Himalayas) — FIXED: NO_VISA_PATTERNS applied to all 6 sources
 - [ ] Discord webhook in ingestion is fire-and-forget (may miss Vercel timeout) — should await
 - [ ] Sponsors page only shows 100 — needs pagination
 - [ ] No error alerting on failed ingestion runs
@@ -228,3 +234,4 @@
 - [ ] Blog, FAQ, Contact, Privacy, Terms are stub pages with no content
 - [ ] Dashboard job alerts tab has form UI but no working submit handler
 - [ ] No analytics/event tracking on any page
+- [ ] Existing jobs in Firestore don't have `remoteAnywhere` field — will populate on next ingestion cycle as old jobs expire and new ones are tagged
