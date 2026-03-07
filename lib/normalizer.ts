@@ -380,6 +380,19 @@ const REMOTE_ANYWHERE_PATTERNS = [
   /\bwork\s+from\s+(?:any\s+(?:location|country)|wherever)\b/i,
   /\banywhere\s+in\s+the\s+world\b/i,
   /\bremote\s*[\-–—]\s*any(?:\s+(?:location|country|where))?\b/i,
+  // Broader patterns commonly used in job postings
+  /\b100%\s+remote\b/i,
+  /\bremote\s+first\b/i,
+  /\bremote[- ]friendly\b/i,
+  /\bopen\s+to\s+(?:all|any)\s+(?:locations?|countries?|time\s*zones?)\b/i,
+  /\bno\s+(?:location|geographic(?:al)?)\s+restrict/i,
+  /\bhire\s+(?:from\s+)?anywhere\b/i,
+  /\bcandidate\s+(?:from\s+)?anywhere\b/i,
+  /\bwork\s+(?:from\s+)?(?:home|remotely)\s+(?:from\s+)?anywhere\b/i,
+  /\bdistributed\s+team\b/i,
+  /\bremote\s*[\(\/]\s*(?:world)?wide\b/i,
+  /\bremote\s+(?:position|role|job)\s*[\-–—:]\s*(?:world)?wide\b/i,
+  /\baccept(?:ing)?\s+(?:remote\s+)?candidates?\s+(?:from\s+)?(?:all|any|every)\b/i,
 ];
 
 export function isRemoteAnywhere(text: string): boolean {
@@ -400,8 +413,13 @@ export function isLocationRemoteAnywhere(location: string): boolean {
     lower === "remote worldwide" ||
     lower === "remote - anywhere" ||
     lower === "remote - global" ||
+    lower === "remote (worldwide)" ||
+    lower === "remote / worldwide" ||
+    lower === "fully remote" ||
     /\bworldwide\b/.test(lower) ||
-    /\banywhere\s+in\s+the\s+world\b/.test(lower)
+    /\banywhere\s+in\s+the\s+world\b/.test(lower) ||
+    /\bremote\s*[\-–—\/\(]\s*(?:any|global|world)/i.test(lower) ||
+    /\b(?:all|any)\s+(?:locations?|countries?|time\s*zones?)\b/.test(lower)
   );
 }
 
