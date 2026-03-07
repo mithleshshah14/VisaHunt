@@ -31,7 +31,9 @@ export async function GET(req: NextRequest) {
 
     await setCache(cacheKey, jobs, 3600); // 1h
 
-    return NextResponse.json({ jobs });
+    return NextResponse.json({ jobs }, {
+      headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" },
+    });
   } catch (err) {
     console.error("[Trending] Error:", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });

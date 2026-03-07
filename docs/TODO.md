@@ -13,7 +13,7 @@
 ## What's Done (Shipped Mar 7, 2026)
 
 ### Core
-- [x] Job aggregation from 6 sources (Arbeitnow, Himalayas, Greenhouse 33 cos, LandingJobs, VisaSponsor.jobs, GitHub Awesome)
+- [x] Job aggregation from 13 sources (6 original + 7 niche/govt added Mar 7)
 - [x] Job deduplication (company|title|country key)
 - [x] Sponsor verification against government registries (90K+ sponsors, exact + fuzzy match)
 - [x] Salary conversion to INR (exchange rate API + fallback rates)
@@ -111,11 +111,16 @@
 - [x] Mode persists in URL params (`?mode=remote-anywhere`)
 - [ ] Landing page section: "Work From Anywhere" trending jobs
 
-#### New Job Sources
-- [ ] `lib/sources/hackernews.ts` — parse monthly "Who is Hiring" thread via HN API
-- [ ] `lib/sources/remoteok.ts` — RemoteOK API with visa tag filter
-- [ ] Add both to `fetchAllSources()` in ingest-jobs cron
-- [ ] Monitor ingestion quality (false positives)
+#### New Job Sources (7 added Mar 7, 2026)
+- [x] `lib/sources/mycareersfuture.ts` — Singapore govt API (10 tech terms × 50 results)
+- [x] `lib/sources/jobtech-sweden.ts` — Swedish govt open data API (8 English tech terms)
+- [x] `lib/sources/jobbank-canada.ts` — Canadian govt Atom RSS feed (custom XML parser)
+- [x] `lib/sources/arc-dev.ts` — Arc.dev (`__NEXT_DATA__` JSON, `requiredCountries[]`)
+- [x] `lib/sources/justremote.ts` — JustRemote (`__PRELOADED_STATE__`/`__NEXT_DATA__`)
+- [x] `lib/sources/berlinstartupjobs.ts` — Berlin Startup Jobs (WordPress RSS 2.0)
+- [x] `lib/sources/hn-hiring.ts` — HN "Who is Hiring" (monthly thread, 200 comments, 6 visa patterns)
+- [x] All 7 added to `fetchAllSources()` in ingest-jobs cron (13 total sources)
+- [ ] Monitor ingestion quality (false positives from new sources)
 
 #### Blog
 - [ ] Blog post layout with `@tailwindcss/typography` prose styling
@@ -197,12 +202,12 @@
 - [ ] "Check your resume" CTA → HuntWise ATS Score
 - [ ] Cross-linking in navbars of both apps
 
-#### More Job Sources
+#### More Job Sources (Future)
 - [ ] Adzuna API (UK/EU)
 - [ ] Reed API (UK)
 - [ ] WeWorkRemotely
-- [ ] LinkedIn Jobs (if API available)
-- [ ] Indeed (if API available)
+- [ ] Government portals: EURES (EU), WorkInDenmark, IDA Ireland
+- [ ] Country-specific boards: TechJobs.ie, SwissDevJobs (if they come back online)
 
 #### Community Features
 - [ ] Company reviews (salary, visa process, culture)
