@@ -44,6 +44,12 @@ export async function GET(req: NextRequest) {
 
     // Equality filters are cheap in Firestore — use them at query level
     let usedArrayContains = false;
+
+    // Remote-anywhere mode: filter at query level (not post-filter)
+    if (filters.mode === "remote-anywhere") {
+      query = query.where("remoteAnywhere", "==", true);
+    }
+
     if (filters.country) {
       query = query.where("country", "==", filters.country.toUpperCase());
     }
@@ -73,10 +79,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // For remote-anywhere mode, we need post-filtering since it's a boolean field
-    // Firestore query level can't easily combine with array-contains
-    const hasPostFilters = filters.mode === "remote-anywhere" ||
-      filters.experienceLevel ||
+    // Post-filtering needed for fields we can't combine in Firestore query
+    const hasPostFilters = filters.experienceLevel ||
       filters.remote || filters.salaryMin || filters.postedWithin ||
       (filters.techStack && filters.techStack.length > 1) ||
       (filters.q && usedArrayContains && filters.techStack?.length);
@@ -88,11 +92,6 @@ export async function GET(req: NextRequest) {
 
     // Post-filter everything Firestore doesn't handle
     let filtered = allJobs;
-
-    // Filter by mode
-    if (filters.mode === "remote-anywhere") {
-      filtered = filtered.filter((j) => j.remoteAnywhere === true);
-    }
 
     // Only filter by age when user explicitly selects a time range
     if (filters.postedWithin) {
