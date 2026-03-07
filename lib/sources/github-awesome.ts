@@ -8,6 +8,8 @@ import {
   getCountryName,
   calculateExpiryDate,
   hasNoVisaSignal,
+  isRemoteAnywhere,
+  isLocationRemoteAnywhere,
 } from "@/lib/normalizer";
 import type { NormalizedJob, JobSource } from "@/lib/types";
 
@@ -62,6 +64,8 @@ function normalizeGitHubJob(job: GitHubAwesomeJob): NormalizedJob | null {
   if (!country) return null;
 
   const description = job.description || `${job.title} at ${job.company} in ${job.location}`;
+  const remoteAnywhere =
+    isRemoteAnywhere(description) || isLocationRemoteAnywhere(job.location || "");
   const techStack = extractTechStack(
     description + " " + (job.tags || []).join(" ")
   );
@@ -86,6 +90,7 @@ function normalizeGitHubJob(job: GitHubAwesomeJob): NormalizedJob | null {
     expiresAt: calculateExpiryDate(),
     techStack,
     techStackLower: techStack.map((t) => t.toLowerCase()),
+    ...(remoteAnywhere ? { remoteAnywhere: true } : {}),
     verifiedSponsor: false,
     sponsorTier: "source-listed",
     searchTokens: generateSearchTokens({

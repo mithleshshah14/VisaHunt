@@ -8,6 +8,8 @@ import {
   getCountryName,
   calculateExpiryDate,
   hasNoVisaSignal,
+  isRemoteAnywhere,
+  isLocationRemoteAnywhere,
 } from "@/lib/normalizer";
 import type { NormalizedJob, JobSource } from "@/lib/types";
 
@@ -83,6 +85,8 @@ function normalizeLandingJob(job: LandingJob): NormalizedJob | null {
     .filter(Boolean)
     .join(" ")
     .replace(/<[^>]*>/g, " ");
+  const remoteAnywhere =
+    isRemoteAnywhere(description) || isLocationRemoteAnywhere(location);
   const techStack = extractTechStack(
     description + " " + (job.tags || []).join(" ")
   );
@@ -110,6 +114,7 @@ function normalizeLandingJob(job: LandingJob): NormalizedJob | null {
     ...(job.currency_code ? { salaryCurrency: job.currency_code } : {}),
     techStack,
     techStackLower: techStack.map((t) => t.toLowerCase()),
+    ...(remoteAnywhere ? { remoteAnywhere: true } : {}),
     verifiedSponsor: false,
     sponsorTier: "source-listed",
     searchTokens: generateSearchTokens({

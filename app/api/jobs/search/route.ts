@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
       verifiedOnly: searchParams.get("verifiedOnly") === "true",
       salaryMin: searchParams.get("salaryMin") ? Number(searchParams.get("salaryMin")) : undefined,
       postedWithin: searchParams.get("postedWithin") ? Number(searchParams.get("postedWithin")) : undefined,
+      mode: (searchParams.get("mode") as any) || undefined,
       cursor: searchParams.get("cursor") || undefined,
       limit: Math.min(Number(searchParams.get("limit")) || DEFAULT_LIMIT, MAX_LIMIT),
     };
@@ -72,8 +73,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Fetch more when post-filtering is needed
-    const hasPostFilters = filters.experienceLevel ||
+    // For remote-anywhere mode, we need post-filtering since it's a boolean field
+    // Firestore query level can't easily combine with array-contains
+    const hasPostFilters = filters.mode === "remote-anywhere" ||
+      filters.experienceLevel ||
       filters.remote || filters.salaryMin || filters.postedWithin ||
       (filters.techStack && filters.techStack.length > 1) ||
       (filters.q && usedArrayContains && filters.techStack?.length);
@@ -85,6 +88,11 @@ export async function GET(req: NextRequest) {
 
     // Post-filter everything Firestore doesn't handle
     let filtered = allJobs;
+
+    // Filter by mode
+    if (filters.mode === "remote-anywhere") {
+      filtered = filtered.filter((j) => j.remoteAnywhere === true);
+    }
 
     // Only filter by age when user explicitly selects a time range
     if (filters.postedWithin) {

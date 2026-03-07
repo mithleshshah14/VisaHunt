@@ -8,6 +8,8 @@ import {
   getCountryName,
   calculateExpiryDate,
   hasNoVisaSignal,
+  isRemoteAnywhere,
+  isLocationRemoteAnywhere,
 } from "@/lib/normalizer";
 import type { NormalizedJob, JobSource } from "@/lib/types";
 
@@ -77,6 +79,8 @@ function normalizeArbeitnowJob(job: ArbeitnowJob): NormalizedJob | null {
   if (!country) return null;
 
   const techStack = extractTechStack(job.description + " " + job.tags.join(" "));
+  const remoteAnywhere =
+    isRemoteAnywhere(job.description) || isLocationRemoteAnywhere(job.location);
   const now = new Date().toISOString();
 
   const normalized: NormalizedJob = {
@@ -106,6 +110,7 @@ function normalizeArbeitnowJob(job: ArbeitnowJob): NormalizedJob | null {
       techStack,
       location: job.location,
     }),
+    ...(remoteAnywhere ? { remoteAnywhere: true } : {}),
     isActive: true,
     ...(job.remote ? { remote: "remote" as const } : {}),
     ...(job.job_types?.includes("Full Time") ? { jobType: "full-time" as const } : {}),

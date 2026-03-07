@@ -47,6 +47,7 @@ export interface NormalizedJob {
   verifiedSponsor: boolean;
   sponsorTier: SponsorTier;
   sponsorDetails?: SponsorDetails;
+  remoteAnywhere?: boolean; // True = work from anywhere globally, no country restriction
   searchTokens: string[]; // Pre-computed for Firestore text search
   isActive: boolean;
 }
@@ -147,6 +148,8 @@ export interface VisaGuide {
 // API Response Types
 // ============================================================
 
+export type JobMode = "visa" | "remote-anywhere";
+
 export interface SearchFilters {
   q?: string;
   country?: string;
@@ -156,6 +159,7 @@ export interface SearchFilters {
   verifiedOnly?: boolean;
   salaryMin?: number;
   postedWithin?: number; // Days
+  mode?: JobMode; // "visa" = visa-sponsored, "remote-anywhere" = work from anywhere
   cursor?: string;
   limit?: number;
 }

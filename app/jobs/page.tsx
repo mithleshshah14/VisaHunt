@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { JobCard } from "@/components/jobs/JobCard";
 import { JobFilters } from "@/components/jobs/JobFilters";
-import type { NormalizedJob, SearchFilters, SearchResponse, GlobalStats } from "@/lib/types";
+import type { NormalizedJob, SearchFilters, SearchResponse, GlobalStats, JobMode } from "@/lib/types";
 import { COUNTRY_MAP } from "@/lib/types";
 
 export default function JobListingsPage() {
@@ -31,6 +31,10 @@ function JobListingsContent() {
   const observerRef = useRef<IntersectionObserver>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
+  const [mode, setMode] = useState<JobMode>(
+    (searchParams.get("mode") as JobMode) || "visa"
+  );
+
   const [filters, setFilters] = useState<SearchFilters>(() => {
     const techStack = searchParams.get("techStack");
     return {
@@ -41,6 +45,7 @@ function JobListingsContent() {
       experienceLevel: (searchParams.get("experienceLevel") as SearchFilters["experienceLevel"]) || undefined,
       remote: (searchParams.get("remote") as SearchFilters["remote"]) || undefined,
       postedWithin: searchParams.get("postedWithin") ? Number(searchParams.get("postedWithin")) : undefined,
+      mode: (searchParams.get("mode") as JobMode) || "visa",
     };
   });
 
@@ -64,6 +69,7 @@ function JobListingsContent() {
         if (filters.experienceLevel) params.set("experienceLevel", filters.experienceLevel);
         if (filters.remote) params.set("remote", filters.remote);
         if (filters.verifiedOnly) params.set("verifiedOnly", "true");
+        if (filters.mode) params.set("mode", filters.mode);
         if (append && cursor) params.set("cursor", cursor);
 
         const res = await fetch(`/api/jobs/search?${params.toString()}`);
@@ -111,17 +117,34 @@ function JobListingsContent() {
     return () => observerRef.current?.disconnect();
   }, [hasMore, loading, fetchJobs]);
 
-  // Update URL params
-  const handleFilterChange = (newFilters: SearchFilters) => {
+  // Handle mode toggle
+  const handleModeChange = (newMode: JobMode) => {
+    setMode(newMode);
+    // Reset filters when switching modes, keep search query
+    const newFilters: SearchFilters = {
+      q: filters.q,
+      mode: newMode,
+    };
     setFilters(newFilters);
     const params = new URLSearchParams();
     if (newFilters.q) params.set("q", newFilters.q);
-    if (newFilters.country) params.set("country", newFilters.country);
-    if (newFilters.verifiedOnly) params.set("verifiedOnly", "true");
-    if (newFilters.techStack?.length) params.set("techStack", newFilters.techStack.join(","));
-    if (newFilters.experienceLevel) params.set("experienceLevel", newFilters.experienceLevel);
-    if (newFilters.remote) params.set("remote", newFilters.remote);
-    if (newFilters.postedWithin) params.set("postedWithin", String(newFilters.postedWithin));
+    params.set("mode", newMode);
+    router.replace(`/jobs?${params.toString()}`, { scroll: false });
+  };
+
+  // Update URL params
+  const handleFilterChange = (newFilters: SearchFilters) => {
+    const withMode = { ...newFilters, mode };
+    setFilters(withMode);
+    const params = new URLSearchParams();
+    if (withMode.q) params.set("q", withMode.q);
+    if (withMode.country) params.set("country", withMode.country);
+    if (withMode.verifiedOnly) params.set("verifiedOnly", "true");
+    if (withMode.techStack?.length) params.set("techStack", withMode.techStack.join(","));
+    if (withMode.experienceLevel) params.set("experienceLevel", withMode.experienceLevel);
+    if (withMode.remote) params.set("remote", withMode.remote);
+    if (withMode.postedWithin) params.set("postedWithin", String(withMode.postedWithin));
+    if (mode) params.set("mode", mode);
     router.replace(`/jobs?${params.toString()}`, { scroll: false });
   };
 
@@ -129,17 +152,53 @@ function JobListingsContent() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      {/* Mode toggle */}
+      <div className="mb-6">
+        <div className="inline-flex rounded-xl border border-navy-600 bg-navy-800 p-1">
+          <button
+            onClick={() => handleModeChange("visa")}
+            className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition ${
+              mode === "visa"
+                ? "bg-sky-500 text-white shadow-lg shadow-sky-500/20"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M16.403 12.652a3 3 0 010-5.304 3 3 0 00-3.75-3.751 3 3 0 00-5.305 0 3 3 0 00-3.751 3.75 3 3 0 000 5.305 3 3 0 003.75 3.751 3 3 0 005.305 0 3 3 0 003.751-3.75zm-2.546-4.46a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+            </svg>
+            Visa Sponsored
+          </button>
+          <button
+            onClick={() => handleModeChange("remote-anywhere")}
+            className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition ${
+              mode === "remote-anywhere"
+                ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/20"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Remote Anywhere
+          </button>
+        </div>
+      </div>
+
       {/* Page header */}
       <div className="mb-8">
         <h1 className="font-sora text-3xl font-bold text-white">
-          {activeCountry
-            ? `${activeCountry.flag} Visa-Sponsored Jobs in ${activeCountry.name}`
-            : "All Visa-Sponsored Tech Jobs"}
+          {mode === "remote-anywhere"
+            ? "Work From Anywhere Jobs"
+            : activeCountry
+              ? `${activeCountry.flag} Visa-Sponsored Jobs in ${activeCountry.name}`
+              : "All Visa-Sponsored Tech Jobs"}
         </h1>
         <p className="mt-2 text-slate-400">
-          {stats?.totalJobs
-            ? `${stats.totalJobs.toLocaleString()} jobs across ${stats.countriesCount} countries`
-            : "Browse thousands of visa-sponsored positions worldwide"}
+          {mode === "remote-anywhere"
+            ? "Fully remote jobs with no location restriction — work from India or anywhere in the world"
+            : stats?.totalJobs
+              ? `${stats.totalJobs.toLocaleString()} jobs across ${stats.countriesCount} countries`
+              : "Browse thousands of visa-sponsored positions worldwide"}
         </p>
       </div>
 

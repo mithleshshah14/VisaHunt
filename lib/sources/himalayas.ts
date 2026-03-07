@@ -8,6 +8,8 @@ import {
   getCountryName,
   calculateExpiryDate,
   hasNoVisaSignal,
+  isRemoteAnywhere,
+  isLocationRemoteAnywhere,
 } from "@/lib/normalizer";
 import type { NormalizedJob, JobSource } from "@/lib/types";
 
@@ -92,6 +94,10 @@ function normalizeHimalayasJob(job: HimalayasJob): NormalizedJob | null {
   if (!country) return null;
 
   const location = job.locationRestrictions?.join(", ") || "Remote";
+  const remoteAnywhere =
+    isRemoteAnywhere(job.description || "") ||
+    isLocationRemoteAnywhere(location) ||
+    (job.locationRestrictions?.length === 0);
   const techStack = extractTechStack(
     job.description + " " + (job.categories || []).join(" ")
   );
@@ -132,6 +138,7 @@ function normalizeHimalayasJob(job: HimalayasJob): NormalizedJob | null {
       techStack,
       location,
     }),
+    ...(remoteAnywhere ? { remoteAnywhere: true } : {}),
     isActive: true,
     ...(job.employmentType === "full_time"
       ? { jobType: "full-time" as const }

@@ -8,6 +8,8 @@ import {
   getCountryName,
   calculateExpiryDate,
   hasNoVisaSignal,
+  isRemoteAnywhere,
+  isLocationRemoteAnywhere,
 } from "@/lib/normalizer";
 
 import type { NormalizedJob, JobSource } from "@/lib/types";
@@ -158,6 +160,8 @@ function normalizeGreenhouseJob(
 
   // If description mentions visa/relocation positively, mark as verified
   const hasPositiveVisa = /\b(visa\s*sponsor|relocation\s*(support|assist|package))/i.test(plainContent);
+  const remoteAnywhere =
+    isRemoteAnywhere(plainContent) || isLocationRemoteAnywhere(locationName);
 
   return {
     id: generateJobId(companyName, job.title, locationName),
@@ -180,6 +184,7 @@ function normalizeGreenhouseJob(
     techStackLower: techStack.map((t) => t.toLowerCase()),
     verifiedSponsor: hasPositiveVisa,
     sponsorTier: hasPositiveVisa ? "source-listed" : "inferred",
+    ...(remoteAnywhere ? { remoteAnywhere: true } : {}),
     searchTokens: generateSearchTokens({
       title: job.title,
       company: companyName,

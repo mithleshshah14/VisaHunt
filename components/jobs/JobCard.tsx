@@ -50,10 +50,15 @@ export function JobCard({ job }: JobCardProps) {
           {/* Meta row */}
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
             <span className="flex items-center gap-1">
-              {country?.flag || "🌍"} {job.location}
+              {job.remoteAnywhere ? "🌍" : country?.flag || "🌍"} {job.remoteAnywhere ? "Worldwide" : job.location}
             </span>
             <span>{timeAgo(job.postedDate)}</span>
-            {job.remote && (
+            {job.remoteAnywhere && (
+              <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 font-medium text-cyan-400">
+                Work From Anywhere
+              </span>
+            )}
+            {!job.remoteAnywhere && job.remote && (
               <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-cyan-400">
                 {job.remote === "remote" ? "Remote" : "Hybrid"}
               </span>

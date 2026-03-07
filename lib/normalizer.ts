@@ -365,6 +365,47 @@ export function hasNoVisaSignal(text: string): boolean {
 }
 
 /**
+ * Detect if a job allows working from anywhere globally (no country restriction).
+ * Separate from "remote within a specific country".
+ */
+const REMOTE_ANYWHERE_PATTERNS = [
+  /\bwork\s+from\s+anywhere\b/i,
+  /\bremote\s*[\-–—]\s*worldwide\b/i,
+  /\bremote\s+worldwide\b/i,
+  /\bglobal(?:ly)?\s+remote\b/i,
+  /\bremote\s+global\b/i,
+  /\blocation[- ]?independent\b/i,
+  /\bfully\s+remote.{0,30}(?:any\s+(?:location|country|where)|world(?:wide)?|global)/i,
+  /\bremote.{0,20}no\s+(?:location|geographic)\s+restrict/i,
+  /\bwork\s+from\s+(?:any\s+(?:location|country)|wherever)\b/i,
+  /\banywhere\s+in\s+the\s+world\b/i,
+  /\bremote\s*[\-–—]\s*any(?:\s+(?:location|country|where))?\b/i,
+];
+
+export function isRemoteAnywhere(text: string): boolean {
+  return REMOTE_ANYWHERE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+/**
+ * Detect remote-anywhere from location string patterns.
+ * e.g. "Remote - Worldwide", "Anywhere", "Global"
+ */
+export function isLocationRemoteAnywhere(location: string): boolean {
+  const lower = location.toLowerCase().trim();
+  return (
+    lower === "worldwide" ||
+    lower === "anywhere" ||
+    lower === "global" ||
+    lower === "remote - worldwide" ||
+    lower === "remote worldwide" ||
+    lower === "remote - anywhere" ||
+    lower === "remote - global" ||
+    /\bworldwide\b/.test(lower) ||
+    /\banywhere\s+in\s+the\s+world\b/.test(lower)
+  );
+}
+
+/**
  * Calculate expiry date (21 days from now).
  */
 export function calculateExpiryDate(): string {
