@@ -7,6 +7,7 @@ import {
   resolveCountryCode,
   getCountryName,
   calculateExpiryDate,
+  hasNoVisaSignal,
 } from "@/lib/normalizer";
 import type { NormalizedJob, JobSource } from "@/lib/types";
 
@@ -66,6 +67,10 @@ export async function fetchLandingJobs(): Promise<NormalizedJob[]> {
 
 function normalizeLandingJob(job: LandingJob): NormalizedJob | null {
   if (!job.title || !job.url) return null;
+
+  // Skip jobs that explicitly say they don't sponsor visas
+  const fullText = [job.role_description, job.main_requirements].filter(Boolean).join(" ");
+  if (fullText && hasNoVisaSignal(fullText)) return null;
 
   const loc = job.locations?.[0];
   if (!loc?.country_code) return null;

@@ -7,6 +7,7 @@ import {
   resolveCountryFromLocation,
   getCountryName,
   calculateExpiryDate,
+  hasNoVisaSignal,
 } from "@/lib/normalizer";
 
 import type { NormalizedJob, JobSource } from "@/lib/types";
@@ -121,29 +122,6 @@ async function fetchCompanyJobs(slug: string): Promise<NormalizedJob[]> {
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-}
-
-// Phrases that indicate the job does NOT sponsor visas
-// Must be visa-specific — avoid matching "export license sponsorship" or "event sponsorship"
-const NO_VISA_PATTERNS = [
-  /visa\s+sponsorship\s+is\s+not\s+(offered|available|provided)/i,
-  /not\s+(be\s+)?eligible\s+for.{0,40}(visa|immigration)\s+sponsorship/i,
-  /not\s+available.{0,50}(visa|immigration)\s+sponsorship/i,
-  /will\s+not\s+(provide|offer|sponsor).{0,20}visa/i,
-  /does\s+not\s+(provide|offer|sponsor).{0,20}visa/i,
-  /unable\s+to\s+(provide|offer|sponsor).{0,20}visa/i,
-  /cannot\s+(provide|offer|sponsor).{0,20}visa/i,
-  /can'?t\s+(provide|offer|sponsor).{0,20}visa/i,
-  /won'?t\s+(provide|offer|sponsor).{0,20}visa/i,
-  /no\s+(visa|immigration)\s+(sponsorship|assistance)/i,
-  /\bmust\s+be\s+(legally\s+)?authorized\s+to\s+work/i,
-  /\bmust\s+have\s+(existing\s+)?(work|employment)\s+(authorization|permit)/i,
-  /\brequires?\s+(existing\s+)?(work|employment)\s+(authorization|permit)/i,
-  /position\s+is\s+not\s+(eligible|available).{0,40}sponsorship/i,
-];
-
-function hasNoVisaSignal(text: string): boolean {
-  return NO_VISA_PATTERNS.some((pattern) => pattern.test(text));
 }
 
 function normalizeGreenhouseJob(

@@ -7,6 +7,7 @@ import {
   resolveCountryCode,
   getCountryName,
   calculateExpiryDate,
+  hasNoVisaSignal,
 } from "@/lib/normalizer";
 import type { NormalizedJob, JobSource } from "@/lib/types";
 
@@ -43,6 +44,7 @@ interface HimalayasResponse {
 export async function fetchHimalayasJobs(maxPages = 10): Promise<NormalizedJob[]> {
   const jobs: NormalizedJob[] = [];
   let offset = 0;
+  let totalRaw = 0;
 
   for (let page = 0; page < maxPages; page++) {
     try {
@@ -59,6 +61,7 @@ export async function fetchHimalayasJobs(maxPages = 10): Promise<NormalizedJob[]
       const data: HimalayasResponse = await res.json();
       if (!data.jobs || data.jobs.length === 0) break;
 
+      totalRaw += data.jobs.length;
       for (const job of data.jobs) {
         const normalized = normalizeHimalayasJob(job);
         if (normalized) jobs.push(normalized);
@@ -72,12 +75,17 @@ export async function fetchHimalayasJobs(maxPages = 10): Promise<NormalizedJob[]
     }
   }
 
-  console.log(`[Himalayas] Fetched ${jobs.length} jobs from ${Math.ceil(offset / PER_PAGE)} pages`);
+  const filtered = totalRaw - jobs.length;
+  console.log(`[Himalayas] Fetched ${totalRaw} raw, kept ${jobs.length}, filtered ${filtered} (no-visa/no-country)`);
   return jobs;
 }
 
 function normalizeHimalayasJob(job: HimalayasJob): NormalizedJob | null {
   if (!job.title || !job.companyName) return null;
+
+  // Skip jobs that explicitly say they don't sponsor visas
+  if (job.description && hasNoVisaSignal(job.description)) return null;
+  if (job.excerpt && hasNoVisaSignal(job.excerpt)) return null;
 
   // Resolve country from locationRestrictions
   const country = resolveCountryFromRestrictions(job.locationRestrictions);
