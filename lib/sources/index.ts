@@ -11,3 +11,8 @@ export { fetchArcDevJobs } from "./arc-dev";
 export { fetchJustRemoteJobs } from "./justremote";
 export { fetchBerlinStartupJobs } from "./berlinstartupjobs";
 export { fetchHNHiringJobs } from "./hn-hiring";
+export { fetchRemoteOKJobs } from "./remoteok";
+export { fetchWeWorkRemotelyJobs } from "./weworkremotely";
+export { fetchWellfoundJobs } from "./wellfound";
+export { fetchEuresJobs } from "./eures";
+export { fetchAdzunaJobs } from "./adzuna";

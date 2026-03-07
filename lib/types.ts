@@ -7,7 +7,7 @@ export type ExperienceLevel = "entry" | "mid" | "senior" | "lead" | "executive";
 export type JobType = "full-time" | "part-time" | "contract" | "internship";
 export type RemoteType = "onsite" | "hybrid" | "remote";
 export type VisaType = "skilled-worker" | "blue-card" | "h1b" | "ict" | "general";
-export type JobSource = "arbeitnow" | "visasponsor" | "github-awesome" | "himalayas" | "greenhouse" | "landingjobs" | "adzuna" | "reed" | "mycareersfuture" | "jobtech-sweden" | "jobbank-canada" | "arc-dev" | "justremote" | "berlinstartupjobs" | "hn-hiring";
+export type JobSource = "arbeitnow" | "visasponsor" | "github-awesome" | "himalayas" | "greenhouse" | "landingjobs" | "adzuna" | "reed" | "mycareersfuture" | "jobtech-sweden" | "jobbank-canada" | "arc-dev" | "justremote" | "berlinstartupjobs" | "hn-hiring" | "remoteok" | "weworkremotely" | "wellfound" | "eures";
 
 export interface SponsorDetails {
   registrySource: string;

@@ -13,6 +13,11 @@ import {
   fetchJustRemoteJobs,
   fetchBerlinStartupJobs,
   fetchHNHiringJobs,
+  fetchRemoteOKJobs,
+  fetchWeWorkRemotelyJobs,
+  fetchWellfoundJobs,
+  fetchEuresJobs,
+  fetchAdzunaJobs,
 } from "@/lib/sources";
 import { batchVerifySponsors } from "@/lib/sponsors";
 import { getExchangeRates, FALLBACK_RATES } from "@/lib/exchange";
@@ -37,7 +42,7 @@ export async function POST(req: NextRequest) {
     // Fetch from all sources in parallel
     const results = await Promise.allSettled([
       fetchArbeitnowJobs(),
-      fetchHimalayasJobs(10),
+      fetchHimalayasJobs(50),
       fetchGreenhouseJobs(),
       fetchLandingJobs(),
       fetchMyCareersFutureJobs(),
@@ -47,12 +52,18 @@ export async function POST(req: NextRequest) {
       fetchJustRemoteJobs(),
       fetchBerlinStartupJobs(),
       fetchHNHiringJobs(),
+      fetchRemoteOKJobs(),
+      fetchWeWorkRemotelyJobs(),
+      fetchWellfoundJobs(),
+      fetchEuresJobs(),
+      fetchAdzunaJobs(),
     ]);
 
     const sourceNames = [
       "Arbeitnow", "Himalayas", "Greenhouse", "LandingJobs",
       "MyCareersFuture", "JobTech Sweden", "Job Bank Canada",
       "Arc.dev", "JustRemote", "Berlin Startup Jobs", "HN Hiring",
+      "RemoteOK", "WeWorkRemotely", "Wellfound", "EURES", "Adzuna",
     ];
     const allJobs: NormalizedJob[] = [];
 
